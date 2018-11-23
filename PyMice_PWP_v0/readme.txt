@@ -1,4 +1,4 @@
-Code using Python 2.7.15
+Code using Python 2.7.15 with default settings this is equivalent to the scheme outlined in chapter 5 of https://ueaeprints.uea.ac.uk/59385/
 
 I've separated this into 3 files for what I think is ease of use/readability:
 
