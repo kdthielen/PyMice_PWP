@@ -12,7 +12,6 @@ from optparse import OptionParser
 import os
 from shutil import copyfile
 
-from params_test import *
 usage = """%prog output_dir data_fname param_name """
 
 parser = OptionParser(usage)    #todo add input file names.
