@@ -1,3 +1,0 @@
-Added a few things:
-Command line arguements
-Sea ice salinity 
