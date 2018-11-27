@@ -69,7 +69,7 @@ profile_input_file=str(options.profile_input)
 save_path =str(base_path)+'/data'
 count=0
 if not os.path.exists(base_path):
-    os.makedirs(save_path)
+    os.makedirs(base_path)
 else:
     count+=1
     base_path = base_path +'_'+str(count)
@@ -347,7 +347,7 @@ while iteration<maxiter:
     if kt_switch==1:
         fw_flux= salt[0]*(((1.-A)*emp))-(salt[0]-S_ice)*A*(mr*dz/dt)
 
-        u_star = U_a*(((rho_air_ref/rho_ocean_ref)*((1.-A)*cd_ocean))**(1./2.))		#neglects ice shear - assume u_i=u_ocean (urel=0)
+        u_star = U_a*(((rho_air_ref/rho_ocean_ref)*cd_ocean))**(1./2.)		#neglects ice shear - assume u_i=u_ocean (urel=0)
                                                                                     #alt such as petty assume urel=u_10 not sure if better or worse. (cd_i>cd_o so wind mixing ^ with A ^
 
         Pw = ((2.*m_kt)*np.e**(-ml_depth/dw)*u_star**3) 			# Power for mixing supplied by wind
@@ -445,7 +445,7 @@ while iteration<maxiter:
     iteration+=1
 
 filename='scalars'
-np.savez(os.path.join(save_path,filename),mld_save,we_save,pb_save,pw_save,h_i_save,Bo_save,mr_save)
+np.savez(os.path.join(save_path,filename),mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,hi=h_i_save,bo=Bo_save,mr=mr_save)
 end = tp.time()
 print(end - start)
 

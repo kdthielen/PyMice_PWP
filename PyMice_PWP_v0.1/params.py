@@ -29,13 +29,13 @@ vel_diff	= 0.005		# diffusion of velocity fields.
 
 dt		    = 100. 		# time-step increment (seconds)
 dz		    = 3.		    # depth increment (meters)
-days 		= 2000.		# the number of days to run
+days 		= 1000.     # the number of days to run
 depth 		= 750.		# the depth to run
 
 dt_save		= 1600		# time-step increment for saving to file (multiples of dt)
 lat 		= 65.		# latitude (degrees)
 
-S_ice		= 5.		    # average bulk salinity of sea ice
+S_ice		= 0.		    # average bulk salinity of sea ice
 
 h_ice_min	= 0.		# minimum ice thickness
 h_snow      = 0.2
