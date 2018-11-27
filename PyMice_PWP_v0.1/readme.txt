@@ -22,3 +22,11 @@ such as g, cp, Latent heat values.
 1) moved some constants here as changed import scheme of main to allow arbitrary paramater file name.
 Probably could do this better? 
 
+ADDED FILES
+
+Test.mat is matlab output for comparison
+
+sed_examp.sh is example of bash commands to use to automate changes to param file
+
+compare_pwp examp of accessing/plotting the matlab and python output. 
+
