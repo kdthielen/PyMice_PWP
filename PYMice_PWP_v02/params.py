@@ -15,10 +15,10 @@ A_min       = 0
 h_i0        = 0.1
 S_ice		= 5.		    # average bulk salinity of sea ice
 h_ice_min	= 0.1		# minimum ice thickness
-h_snow      = 0.0
+h_snow      = 0.2
 
-rb 		        = 0.65		# critical bulk richardson number (0.65)
-rg		        = 0.25		# critical gradient richardson number (0.25)
+rb 		        =  0.65		# critical bulk richardson number (0.65)
+rg		        =  0.25		# critical gradient richardson number (0.25)
 ucon            = 0          # this is for inertial internal wave dissipation stuff, all other scripts I've seen have this unlabeled so assume 0
 
 ocean_relax_switch  = 1
@@ -34,11 +34,12 @@ vel_diff	= 0.005		# diffusion of velocity fields.
 ###################################################
 
 dt		    = 100. 		# time-step increment (seconds)
-dz		    = 0.5		    # depth increment (meters)
+dz		    = 1.		    # depth increment (meters)
 days 		= 1000.     # the number of days to run
 depth 		= 750.		# the depth to run
+ml_depth_0  = 6.
 ml_min      = 6.
-ml_max      = depth-dt*5.
+ml_max      = depth-dz*5.
 
 dt_save		= 1600		# time-step increment for saving to file (multiples of dt)
 lat 		= 65.		# latitude (degrees)

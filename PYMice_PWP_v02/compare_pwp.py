@@ -30,7 +30,7 @@ def plot_tsd(t0, s0, d0, iteration):
 
 filenum=540
 ##   load pypwp run
-base_path='pypwp_20181205_0806/'
+base_path='pypwp_20181206_1916/'
 
 data_path =base_path+"data/"
 save_path = str(base_path)+"/plots"    # tell it where to save the plots to be made
@@ -38,11 +38,11 @@ if not os.path.exists(save_path):
     os.makedirs(save_path)
 
 ## initialize arrays
-temp=np.zeros((1501,filenum))
-salt=np.zeros((1501,filenum))
-density=np.zeros((1501,filenum))
-z0=np.arange(1501)*3.
-z1=np.arange(1501)*3.
+temp=np.zeros((751,filenum))
+salt=np.zeros((751,filenum))
+density=np.zeros((751,filenum))
+z0=np.arange(751)*3.
+z1=np.arange(751)*3.
 
 for i in range(0,filenum):
     f_name = 'profiles_' + str(i) + '.npz'
@@ -60,6 +60,7 @@ mld=scalars['mld']
 h_i=scalars['hi']
 #A=scalars['A']
 we=scalars['we']
+mr=scalars['mr']
 h_i_plot=h_i*50
 depth=np.arange(251)*3
 plt.figure(figsize = (20,10))

@@ -1,7 +1,7 @@
 # ctrl f "todo" for things todo#
-# todo add ml_depth_0 as set numb to be reached based off dt and dz and not a set index of dz
-#todo add note around kt/rb/rg just saying what processes being paramaterized here
-# todo add ocean surface stress.
+# todo set scalar save to not be just at end (if troubleshooting want that data)
+# todo check switches
+# function for variable ice albedo
 import numpy as np
 import scipy.io as sio
 from scipy.interpolate import griddata
@@ -11,7 +11,7 @@ import datetime
 from optparse import OptionParser
 import os
 from shutil import copyfile
-
+from params import *
 usage = """%prog output_dir data_fname param_name """
 
 parser = OptionParser(usage)    #todo add input file names.
@@ -116,10 +116,10 @@ def plot_preliminary(time, lw_force, sw_force, T_force,U_force):
 ################################################# some things here may not be needed with certain switches (mr) but
 ##   Initialize simulation paramaters/arrays   ## setting them to 0 here and setting the save means no other adjustment is needed
 ################################################# besides setting the switch. not huge cost and fewer ifs.
+
 maxiter     = days*8.64e4/dt
 nz          = int(depth/dz)+1
 z           = np.arange(0,int(nz))*dz
-iteration   = 0
 temp        = np.zeros(nz)
 salt        = np.zeros(nz)
 oxy         = np.zeros(nz)
@@ -128,8 +128,8 @@ oxy         = np.zeros(nz)
 
 h_i         = h_i0
 A           = A_0
-ml_depth    = dz
-ml_index    = 1
+ml_depth    = (dz*ml_depth_0)//dz
+ml_index    = int(round(ml_depth_0/dz))
 ##  Initialize scalar arrays  ##
 
 mld_save=[]
@@ -360,7 +360,7 @@ while iteration<maxiter:
                                                                                     #alt such as petty assume urel=u_10 not sure if better or worse. (cd_i>cd_o so wind mixing ^ with A ^
 
         Pw = ((2.*m_kt)*np.e**(-ml_depth/dw)*u_star**3) 			# Power for mixing supplied by wind
-        Bo = (((g*alpha)/(rho_ocean_ref*cp_ocean))*(temp_flux)) - (g*beta*(fw_flux))	# buoyancy forcing
+        Bo = (((g*alpha)/(rho_ocean_ref*cp_ocean))*(q_out-q_in*0.45)) - (g*beta*(fw_flux))	# buoyancy forcing
         Pb = (ml_depth/2.)*((1.+n_kt)*Bo-(1.-n_kt)*abs(Bo))	# Power for mixing supplied by buoyancy change?
 
         we = (Pw+Pb)/(ml_depth*(g*alpha*(temp[0]-temp[ml_index+1])-g*beta*(salt[0]-salt[ml_index+1])))
@@ -382,9 +382,11 @@ while iteration<maxiter:
                 ml_depth_test = ml_depth+we*dt
         else:
             ml_depth = (Pw /(-Bo))
+        #if we<0:
+           # ml_depth = ml_depth + we * dt
 
         ml_index = int(round(ml_depth / dz))
-
+        ml_depth = z[ml_index]
         if ml_depth < ml_min:
             ml_depth=ml_min
             ml_index = int(round(ml_depth / dz))
