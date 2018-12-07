@@ -287,41 +287,6 @@ def sw_sat_oxy(S,T):
     return c
 
 
-
-def write_params(kt_switch,bc_ice,dt,dz,days,depth,ad,dt_save,tracer_diff,oxy_diff,vel_diff,lat,rb,rg,rkz,m_kt,n_kt,cd_ice,cd_ocean,S_ice,h_ice_min,A_max,R_b,phi_r,T_si_0,base_path):
-    var = os.path.join(base_path, 'variables.txt')
-    f=open(var,'w')
-    f.write('Kt switch' +str(kt_switch) +'\n')
-    f.write('bc switch' + str(bc_ice) + '\n')
-    f.write('dt = ' +str(dt) +'\n')
-    f.write('dz = ' +str(dz) +'\n')
-    f.write('days = ' +str(days) +'\n')
-    f.write('depth = ' +str(depth) +'\n')
-    f.write('ad = ' +str(ad) +'\n')
-    f.write('dt_save = ' +str(dt_save) +'\n')
-    f.write('tracer_diff = ' +str(tracer_diff) +'\n')
-    f.write('oxy_diff = ' +str(oxy_diff) +'\n')
-    f.write('vel_diff = ' +str(vel_diff) +'\n')
-    f.write('lat = ' +str(lat) +'\n')
-    f.write('rb = ' +str(rb) +'\n')
-    f.write('rg = ' +str(rg) +'\n')
-    f.write('rkz = ' +str(rkz) +'\n')
-    f.write('m_kt = ' +str(m_kt) +'\n')
-    f.write('n_kt = ' +str(n_kt) +'\n')
-    f.write('cd_ice = ' +str(cd_ice) +'\n')
-    f.write('cd_ocean = ' +str(cd_ocean) +'\n')
-    f.write('S_ice = ' +str(S_ice) +'\n')
-    f.write('h_ice_min = ' +str(h_ice_min) +'\n')
-    f.write('A_max = ' +str(A_max) +'\n')
-    f.write('R_b = ' +str(R_b) +'\n')
-    f.write('phi_r = ' +str(phi_r) +'\n')
-    f.write('T_si_0' + str(T_si_0) + '\n')
-    f.close()
-    return 0
-
-###########
-
-
 def aio_sens(T_si,T_a,U_a):
     return rho_air_ref*cp_air*C_turb_i*U_a*(T_si-T_a)
 

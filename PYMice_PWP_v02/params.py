@@ -34,16 +34,14 @@ vel_diff	= 0.005		# diffusion of velocity fields.
 ###################################################
 
 dt		    = 100. 		# time-step increment (seconds)
+dt_save		= 1600		# time-step increment for saving to file (multiples of dt)
 dz		    = 1.		    # depth increment (meters)
 days 		= 1000.     # the number of days to run
 depth 		= 750.		# the depth to run
 ml_depth_0  = 6.
 ml_min      = 6.
 ml_max      = depth-dz*5.
-
-dt_save		= 1600		# time-step increment for saving to file (multiples of dt)
 lat 		= 65.		# latitude (degrees)
-
 
 
 ad_i		= int(ad/dz)
