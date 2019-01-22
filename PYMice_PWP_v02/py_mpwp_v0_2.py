@@ -1,6 +1,8 @@
 # ctrl f "todo" for things todo#
 # todo set scalar save to not be just at end (if troubleshooting want that data)
 # todo check switches
+# todo import params change in modules
+# todo add ice/snow albedo into penetrating flux.
 # function for variable ice albedo
 import numpy as np
 import scipy.io as sio
@@ -45,13 +47,6 @@ if options.output_dir is None:
 else:
     base_path=str(options.output_dir)
 
-if options.output_dir is None:
-    date = datetime.datetime.now()
-    simdate = str(date)[0:4] + str(date)[5:7] + str(date)[8:10] + '_' + str(date)[11:13] + str(date)[14:16]
-    base_path = 'pypwp_' + str(simdate)
-    print("output directory not specified - using default: "+str(base_path))
-else:
-    base_path=str(options.output_dir)
 
 filename=str(options.data_fname)
 
@@ -71,10 +66,14 @@ count=0
 if not os.path.exists(base_path):
     os.makedirs(base_path)
 else:
-    count+=1
-    base_path = base_path +'_'+str(count)
-    save_path = str(base_path) + '/data'
-    print(base_path)
+    temp_base_path=base_path
+    while os.path.exists(temp_base_path):
+        temp_base_path = base_path + '_' + str(count)
+        count+=1
+    base_path=temp_base_path
+    os.makedirs(base_path)
+print(base_path)
+save_path = str(base_path) + '/data'
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 copyfile(params_load,os.path.join(base_path,params_load))
@@ -240,7 +239,6 @@ density=pypwp.density_0(temp_orig,salt_orig)
 ############################################################
 ##     END SETUP AND INITIALIZATION: START SIMULATION     ##
 ############################################################
-h_i_max=0
 iteration=0
 start = tp.time() # for timing purposes can comment out but costs negligible.
 while iteration<maxiter:
@@ -306,7 +304,7 @@ while iteration<maxiter:
     #######################################
 
     ##  flux surface fluxes evenly across existing ML #ice here perfectly reflective
-    temp[0:ml_index+1]+=(1.-A)*(q_in*absrb[0:ml_index+1])*dt/(dz*density[0:ml_index+1]*cp_ocean)
+    temp[0:ml_index+1]+=((1.-A)*(q_in*absrb[0:ml_index+1]))*dt/(dz*density[0:ml_index+1]*cp_ocean)
     temp[0:ml_index + 1] = np.mean(temp[0:ml_index + 1])
 
     density[0:ml_index + 1] = pypwp.density_0(temp[0:ml_index + 1],salt[0:ml_index + 1])
@@ -320,27 +318,29 @@ while iteration<maxiter:
     # T_si calc from budget as in petty 2013
     if bc_ice==1:
         t_fp = pypwp.liquidous(salt[0])
-        if temp[0]<t_fp:
+        if h_i>0.:
             T_si = pypwp.findroot(temp[0] - 20.0, temp[0] + 20.0, t_fp, h_snow, h_i, T_a, U_a, lw, sw, sp_hum)
-            basal=(density[0]*cp_ocean*u_star_i*(temp[0]-t_fp))/1000.0/Latent_fusion
-            cond_flux=pypwp.ice_cond_heat(T_si,t_fp,h_i,h_snow)/1000.0/Latent_fusion
-            mr=basal-cond_flux
-            temp[0:ml_index+1]+=-A*mr*dt/ml_depth
-            salt[0:ml_index+1]=salt[0:ml_index+1]/(1+(1-S_ice/salt[0])*A*mr)
-            h_i-=mr*ml_depth
-            A=A_grow             #matter if this in beginning or end of if?
-        elif h_i>h_ice_min:
-            mr=(density[0]*cp_ocean*u_star_i*(temp[0]-t_fp))/1000.0/Latent_fusion
-            temp[0:ml_index+1]+=-A*mr*dt/ml_depth
-            salt[0:ml_index+1]=salt[0:ml_index+1]/(1+(1-S_ice/salt[0])*(A*mr))
-            h_i=h_i-mr*ml_depth
-            A=A_melt
+            cond_flux=pypwp.ice_cond_heat(T_si,t_fp,h_i,h_snow)/rho_ice_ref/Latent_fusion
+            basal = (density[0] * cp_ocean * u_star_i *Stanton* (temp[0] - t_fp)) / rho_ice_ref / Latent_fusion
         else:
-            mr=0
-            A=0
+            cond_flux=0.
+            basal=0.
+        mr=basal-cond_flux
+        if temp[0]<t_fp:
+            A=A_grow
+        else:
+            A = A_melt
+
+
+        h_i-=mr*dt
+        if h_i<h_ice_min:
             h_i=h_ice_min
-        if h_i>h_i_max:
-            h_i_max=h_i # with basal+cond 0.823989967238252, basal - cond 0.19874838522889124,
+            mr=0.
+            basal=0.
+
+        temp[0:ml_index + 1] += -A * basal * dt / ml_depth
+        salt[0:ml_index + 1] += -(salt[0]  - S_ice)  * (rho_ice_ref/rho_ocean_ref)*A*mr*dt/ml_depth
+
 
     ##  Penetrating shortwave below ML depth
     temp[ml_index+1:] = temp[ml_index+1:]+(1.-A)*ISW*absrb[ml_index+1:]*dt/(dz*density[ml_index+1:]*cp_ocean)
@@ -354,13 +354,13 @@ while iteration<maxiter:
     #######################################################
 
     if kt_switch==1:
-        fw_flux= salt[0]*(((1.-A)*emp))-(salt[0]-S_ice)*A*(mr*dz/dt)
-        temp_flux=(1.-A)*(q_out-q_in*0.45)-A*mr*dt/ml_depth
+        fw_flux= salt[0]*(((1.-A)*emp))-(salt[0]-S_ice)*(rho_ice_ref/rho_ocean_ref)*A*(mr)*dt/dz
+        temp_flux=(1.-A)*(q_out-q_in*0.45)-A*basal
         u_star = U_a*(((rho_air_ref/rho_ocean_ref)*cd_ocean))**(1./2.)		#neglects ice shear - assume u_i=u_ocean (urel=0)
                                                                                     #alt such as petty assume urel=u_10 not sure if better or worse. (cd_i>cd_o so wind mixing ^ with A ^
 
         Pw = ((2.*m_kt)*np.e**(-ml_depth/dw)*u_star**3) 			# Power for mixing supplied by wind
-        Bo = (((g*alpha)/(rho_ocean_ref*cp_ocean))*(q_out-q_in*0.45)) - (g*beta*(fw_flux))	# buoyancy forcing
+        Bo = (((g*alpha)/(rho_ocean_ref*cp_ocean))*(temp_flux)) - (g*beta*(fw_flux))	# buoyancy forcing
         Pb = (ml_depth/2.)*((1.+n_kt)*Bo-(1.-n_kt)*abs(Bo))	# Power for mixing supplied by buoyancy change?
 
         we = (Pw+Pb)/(ml_depth*(g*alpha*(temp[0]-temp[ml_index+1])-g*beta*(salt[0]-salt[ml_index+1])))
@@ -385,15 +385,16 @@ while iteration<maxiter:
         #if we<0:
            # ml_depth = ml_depth + we * dt
 
-        ml_index = int(round(ml_depth / dz))
-        ml_depth = z[ml_index]
+
         if ml_depth < ml_min:
             ml_depth=ml_min
             ml_index = int(round(ml_depth / dz))
-        if ml_depth>ml_max:
+        elif ml_depth>ml_max:
             ml_depth=ml_max
             ml_index = int(round(ml_depth / dz))
-
+        else:
+            ml_index = int(round(ml_depth / dz))
+            ml_depth = z[ml_index]
         temp, salt, u, v, density = pypwp.mix(temp, salt, u, v, density, ml_index)
 
 
@@ -443,7 +444,7 @@ while iteration<maxiter:
     oxy=pypwp.Oxygen_change(temp, salt, oxy, density, U_a, ml_depth,ml_index, dt,A)
 
     if iteration%dt_save==0: #actually save data.
-        print(iteration/dt_save,iteration/maxiter*100.,time[iteration],ml_depth,h_i_max,temp[0]<t_fp)
+        print(iteration/dt_save,iteration/maxiter*100.,time[iteration],ml_depth,h_i,temp[0]<t_fp)
         f_iter=filename+str(iteration/dt_save)
         mld_save.append(ml_depth)
         h_i_save.append(h_i)
