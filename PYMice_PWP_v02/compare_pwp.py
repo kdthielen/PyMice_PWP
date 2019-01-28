@@ -25,60 +25,81 @@ def plot_tsd(t0, s0, d0, iteration):
     print(i)
     return 0
 
-
+params = {
+    'font.size' : 12,
+    'axes.labelsize': 16,
+    'legend.fontsize': 12,
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'text.usetex': False,
+    'figure.figsize': [6,6 ],
+    'axes.linewidth' : 1.5
+}
+plt.rcParams.update(params)
 
 
 filenum=540
 ##   load pypwp run
-base_path='pypwp_20181206_1916/'
+base_path0='bc-or-mli_1/'
 
-data_path =base_path+"data/"
-save_path = str(base_path)+"/plots"    # tell it where to save the plots to be made
+data_path =base_path0+"data/"
+save_path = str(base_path0)+"/plots"    # tell it where to save the plots to be made
 if not os.path.exists(save_path):
     os.makedirs(save_path)
-
-## initialize arrays
-temp=np.zeros((751,filenum))
-salt=np.zeros((751,filenum))
-density=np.zeros((751,filenum))
-z0=np.arange(751)*3.
-z1=np.arange(751)*3.
-
-for i in range(0,filenum):
-    f_name = 'profiles_' + str(i) + '.npz'
-    file_temp = np.load(os.path.join(data_path, f_name))
-    temp_temp=file_temp['temp']
-    salt_temp = file_temp['salt']
-    density_temp = file_temp['density']
-    temp[:,i]=temp_temp
-    salt[:,i]=salt_temp
-    density[:,i]=density_temp
-    #plot_tsd(temp[:,i],salt[:,i],density[:,i],i)
 
 scalars=np.load(os.path.join(data_path,'scalars.npz'))
 mld=scalars['mld']
 h_i=scalars['hi']
-#A=scalars['A']
-we=scalars['we']
-mr=scalars['mr']
-h_i_plot=h_i*50
-depth=np.arange(251)*3
-plt.figure(figsize = (20,10))
-plt.imshow(temp,vmin=-2,vmax=1,extent=[0,filenum,750,0]) # imshow plots a heatmap
-plt.colorbar()
-t=np.arange(len(mld))
-plt.plot(t,mld)
-plt.plot(t,h_i_plot)
-plt.savefig("test.png")
 
-#plt.show()
-plt.clf()
+base_path1='bc-or-adi_1/'
+data_path =base_path1+"data/"
+scalars=np.load(os.path.join(data_path,'scalars.npz'))
+mld1=scalars['mld']
+h_i1=scalars['hi']
+
+
+
+base_path2='ktall_dz_2.0/'
+data_path =base_path2+"data/"
+scalars=np.load(os.path.join(data_path,'scalars.npz'))
+mld2=scalars['mld']
+h_i2=scalars['hi']
+
+base_path3='ktall_dz_3.0/'
+data_path =base_path3+"data/"
+scalars=np.load(os.path.join(data_path,'scalars.npz'))
+mld3=scalars['mld']
+h_i3=scalars['hi']
+
+t=np.arange(len(mld))
+
 
 ##   just note python does weird things with both savefig and show on so comment one out if using the other.
 #plt.savefig("test.png")
 
-plt.plot(t,mld)
-plt.show()
+
+labels=['ad=mli','ad=adi','dz = 2.0 m','dz = 3.0 m']
+plt.plot(t,mld,lw=2,label=labels[0])
+plt.plot(t,mld1,lw=2,label=labels[1])
+#plt.plot(t,mld2,lw=2,label=labels[2])
+#plt.plot(t,mld3,lw=2,label=labels[3])
+plt.xlabel("Days")
+plt.ylabel("ML Depth")
+plt.legend()
+plt.tight_layout()
+#plt.show()
+plt.savefig("ad3_q_ml.png")
+
 plt.clf()
-plt.plot(t,h_i)
-plt.show()
+
+plt.plot(t,h_i,lw=2,label=labels[0])
+plt.plot(t,h_i1,lw=2,label=labels[1])
+#plt.plot(t,h_i2,lw=2,label=labels[2])
+#plt.plot(t,h_i3,lw=2,label=labels[3])
+plt.xlabel("Days")
+plt.ylabel("Ice Thickness")
+plt.legend()
+plt.tight_layout()
+#plt.show()
+plt.savefig("ad3_q_hi.png")
+

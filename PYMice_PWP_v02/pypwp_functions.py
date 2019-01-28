@@ -192,7 +192,7 @@ def grad_mix(dz,g,rg,nz,z,t,s,d,u,v,oxy,ml_index): #PWP mixing based on gradient
         for j in range(j1,j2):
             dd = (d[j+1]-d[j])/d[j]
             dv = (u[j+1]-u[j])**2+(v[j+1]-v[j])**2
-            if dv < 1E-20: #changed this from ==0
+            if dv < 1E-15: #changed this from ==0
                 r_check[j] = 99999.
             else:
                 r_check[j] = g*dd*dz/dv
@@ -226,7 +226,7 @@ def bulk_mix(ml_index,rb,d,u,v,t,s,z,nz): #mixing for PWP based on Bulk Richards
         h 	= z[j]
         dd 	= (d[j]-d[0])/d[0]
         dv 	= (u[j]-u[0])**2+(v[j]-v[0])**2
-        if dv < 1E-20:
+        if dv < 1E-15:
             rv = 9999.
         else:
             rv = g*h*dd/dv #save rv below this in here and matlab and compare?
@@ -239,12 +239,12 @@ def bulk_mix(ml_index,rb,d,u,v,t,s,z,nz): #mixing for PWP based on Bulk Richards
 
 
 
-def Ocean_relax(t,s,o,t_0,s_0,o_0,ad_i):
-    dtemp = ((-0.01*(t[ad_i:]-t_0[ad_i:]))*0.01)	#fake advection below ad_i/relax to ocean state. not sure why times -0.001
+def Ocean_relax(t,s,o,t_0,s_0,o_0,ad_i,OR_ts):
+    dtemp = ((-OR_ts*(t[ad_i:]-t_0[ad_i:])))	#fake advection below ad_i/relax to ocean state. not sure why times -0.001
     t[ad_i:] = t[ad_i:] + dtemp
-    dsalt = ((-0.01*(s[ad_i:]-s_0[ad_i:]))*0.01)
+    dsalt = ((-OR_ts*(s[ad_i:]-s_0[ad_i:])))
     s[ad_i:] = s[ad_i:] + dsalt
-    doxy = ((-0.01*(o[ad_i:]-o_0[ad_i:]))*0.01)
+    doxy = ((-OR_ts*(o[ad_i:]-o_0[ad_i:])))
     o[ad_i:] = o[ad_i:] + doxy
     return t, s, o
 
