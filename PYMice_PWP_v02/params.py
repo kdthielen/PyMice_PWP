@@ -7,9 +7,9 @@ import numpy as np
 
 kt_switch       = 1        # 1 krauss-turner on, anything else off
 
-bc_ice          = 1        # if 1 turns on biddle-clark ice scheme
+bc_ice          = 0        # if 1 turns on biddle-clark ice scheme
 
-kt_ice          = 0
+kt_ice          = 1
 
 A_0		    = 0. 		# initial sea ice concentration
 A_grow      = 0.77
@@ -18,7 +18,7 @@ A_min       = 0
 h_i0        = 0.1
 S_ice		= 5.		    # average bulk salinity of sea ice
 h_ice_min	= 0.1		# minimum ice thickness
-h_snow      =     0.2 
+h_snow      =     0.
 
 cond_on     =  1
 
@@ -43,7 +43,7 @@ vel_diff	= 0.005		# diffusion of velocity fields.
 
 dt		    = 100. 		# time-step increment (seconds)
 dt_save		= 1600		# time-step increment for saving to file (multiples of dt)
-dz		    =     3.0
+dz		    =     1.0
 days 		= 1000.     # the number of days to run
 depth 		= 750.		# the depth to run
 ml_depth_0  = 6
@@ -69,10 +69,21 @@ alpha		    = 5.82*10**(-5)	# thermal expansion coef K^(-1)
 beta		    = 8*10**(-4)	# saline contraction coef
 cp_air 		    = 1005.		# Specific heat cap of air (J kg^(-1) K^(-1))
 cp_ocean	    = 4190.		#
-ice_emiss	    = 1.		#
+
+snow_emiss	    = 0.99		#
+snow_albedo	    = 0.8		#
+
+ice_emiss       = 0.99      # EBERT
+ice_albedo      = 0.63      # bitz1999
+
 ocean_emiss	    = 0.97		#
+ocean_albedo	= 0.06		#
+
 g	 	        = 9.81		# gravitational acceleration
-cond_ice	    = 2.04		#
+if cond_on == 0:
+    cond_ice=0.
+else:
+    cond_ice	    = 2.04		#
 cond_snow	    = 0.31		#
 Latent_sub	    = 2.834*10**6	#
 Latent_vapor	= 2.501*10**6	#
@@ -82,13 +93,10 @@ rho_ocean_ref	= 1026.		#
 rho_ice_ref	    = 930.		#
 rho_air_ref	    =1.275		#
 stef_boltz	    = 5.67*10**(-8)	#
-snow_albedo	    = 0.8		#
-ocean_albedo	= 0.06		#
 I_0		        = 0.45		# fraction of shortwave that penetrates open water surface layer Niiler and Kraus 1977
 beta1 		    = 0.6		# longwave extinction coefficient (0.6 m)
 beta2		    = 20. 		# shortwave extinction coefficient (20 m)
 ep		        = 0.62197  	# epsilon, ratio of molecular weight of water and dry air (0.622)
-ice_albedo      = 0.9
 c1		        = 0.8		# Tang 1991 max magnitude of wind stirring in ml
 C_turb_i	    = 0.0013	# Ebert and Curry 1993 turbulent exchange over ice
 C_turb_o	    = 0.001		# Ebert and Curry 1993 turbulent exchange over leads
@@ -102,5 +110,3 @@ cd_ocean	= 0.001		# drag coefficient ocean
 cd_ice		= 0.0013	# drag coefficient of ice
 rkz		    = 0.0001        # background diffusion (0)
 
-if cond_on == 0:
-    cond_ice=0.

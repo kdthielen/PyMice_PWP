@@ -1,21 +1,6 @@
 import numpy as np
 import os as os
 from params import *
-P_atm		    = 101325.		# atmospheric pressure (kPa)
-ep		        = 0.62197  	# epsilon, ratio of molecular weight of water and dry air (0.622)
-stef_boltz	    = 5.67*10**(-8)	#
-rho_ice_ref	    = 930.		#
-rho_air_ref	    =1.275		#
-cp_air 		    = 1005.		# Specific heat cap of air (J kg^(-1) K^(-1))
-Latent_vapor	= 2.501*10**6	#
-g	 	        = 9.81		# gravitational acceleration
-cond_ice	    = 2.04		#
-cond_snow	    = 0.31		#
-Latent_sub	    = 2.834*10**6	#
-Latent_fusion	= 3.340*10**5	#
-cp_ocean	    = 4190.		#
-Stanton		    = 0.006		# McPhee 1992 mixed layer to sea ice heat transfer
-rho_ocean_ref	= 1026.		#
 
 
 def pure_water_eos(T):
