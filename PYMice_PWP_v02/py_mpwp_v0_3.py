@@ -2,6 +2,8 @@
 # todo set scalar save to not be just at end (if troubleshooting want that data)
 # todo check switches
 # todo import params change in modules
+# todo add ice/snow albedo into penetrating flux.
+
 # function for variable ice albedo
 import numpy as np
 import scipy.io as sio
@@ -39,7 +41,7 @@ options, args = parser.parse_args()
 if options.output_dir is None:
     date = datetime.datetime.now()
     simdate = str(date)[0:4] + str(date)[5:7] + str(date)[8:10] + '_' + str(date)[11:13] + str(date)[14:16]
-    base_path = 'icesw' #+ str(simdate)
+    base_path = 'ham' #+ str(simdate)
     print("output directory not specified - using default: "+str(base_path))
 else:
     base_path=str(options.output_dir)
@@ -133,11 +135,15 @@ mr_save=[]
 pb_save=[]
 pw_save=[]
 Bo_save=[]
+A_save=[]
+tml=[]
+sml=[]
 we  = 0
 Pb  = 0
 Pw  = 0
 Bo  = 0
 mr  = 0
+A=A_0
 
 u = np.zeros(nz)
 v = np.zeros(nz)
@@ -150,52 +156,19 @@ absrb = pypwp.absorb(beta1,beta2,nz,dz)
 ##########################################
 
 print('loading ', str(met_input_file))
-if loadcase==0:
-    met_forcing = sio.loadmat(met_input_file)
-    # import forcing data
-    time_series = met_forcing['met']['time'][0,0][:,0]
-    T_a_series = met_forcing['met']['tair'][0,0][:,0]
-    lw_series = met_forcing['met']['lw'][0,0][:,0]
-    sw_series = met_forcing['met']['sw'][0,0][:,0]
-    shum_series = met_forcing['met']['shum'][0,0][:,0]
-    precip_series = met_forcing['met']['precip'][0,0][:,0]
-    U_a_series = met_forcing['met']['U'][0,0][:,0]
-    tx_series = met_forcing['met']['tx'][0,0][:,0]
-    ty_series = met_forcing['met']['ty'][0,0][:,0]
 
-elif loadcase==1:
-    fname='summer_nowind.npz'
+met_forcing = sio.loadmat(met_input_file)
 
-elif loadcase == 2:
-    fname='summer_wind.npz'
-
-elif loadcase == 3:
-    fname='summer_wind_precip.npz'
-
-elif loadcase ==4:
-    fname='winter_nowind.npz'
-
-elif loadcase ==5:
-    fname='winter_wind.npz'
-
-elif loadcase ==6:
-    fname='winter_wind_precip.npz'
-
-
-
-if loadcase>0:
-    met_forcing=np.load(fname)
-    print filename
-    time_series = met_forcing['time']
-    T_a_series = met_forcing['tair']
-    lw_series = met_forcing['lw']
-    sw_series = met_forcing['sw']
-    shum_series = met_forcing['shum']
-    precip_series = met_forcing['precip']
-    U_a_series = met_forcing['U']
-    tx_series = met_forcing['tx']
-    ty_series = met_forcing['ty']
-
+# import forcing data
+time_series = met_forcing['met']['time'][0,0][:,0]
+T_a_series = met_forcing['met']['tair'][0,0][:,0]
+lw_series = met_forcing['met']['lw'][0,0][:,0]
+sw_series = met_forcing['met']['sw'][0,0][:,0]
+shum_series = met_forcing['met']['shum'][0,0][:,0]
+precip_series = met_forcing['met']['precip'][0,0][:,0]
+U_a_series = met_forcing['met']['U'][0,0][:,0]
+tx_series = met_forcing['met']['tx'][0,0][:,0]
+ty_series = met_forcing['met']['ty'][0,0][:,0]
 
 
 time=np.arange(0,maxiter)*dt/8.64e4+time_series[0]
@@ -219,9 +192,8 @@ sw_force    = griddata(time_series,sw_series,time)
 shum_force  = griddata(time_series,shum_series,time)
 precip_force= griddata(time_series,precip_series,time)
 U_a_force   = griddata(time_series,U_a_series,time)
-tx_force    = griddata(time_series,tx_series,time) # wind stress
+tx_force    = griddata(time_series,tx_series,time)
 ty_force    = griddata(time_series,ty_series,time)
-
 
 
 #  -- Load initial t,s profile data. --
@@ -261,13 +233,18 @@ salt_orig=salt.copy()
 oxy_orig=oxy.copy()
 density=pypwp.density_0(temp_orig,salt_orig)
 
+if h_snow > 0.001:
+    si_albedo = snow_albedo
+else:
+    si_albedo = ice_albedo
+
 # forcing_plots
 #plot_preliminary(time,lw_force,sw_force,T_a_force,U_a_force)
 
 ############################################################
 ##     END SETUP AND INITIALIZATION: START SIMULATION     ##
 ############################################################
-print(time_series[0],time_series[1])
+
 iteration=0
 start = tp.time() # for timing purposes can comment out but costs negligible.
 while iteration<maxiter:
@@ -281,9 +258,7 @@ while iteration<maxiter:
     tx = tx_force[iteration]
     ty = ty_force[iteration]
 
-    u_star_l = np.sqrt(cd_ocean * rho_air_ref / rho_ocean_ref) * U_a
-    u_star_i = np.sqrt(cd_ice * rho_air_ref / rho_ocean_ref) * U_a
-    u_star = np.sqrt((A * u_star_i * u_star_i) + ((1. - A) * u_star_l * u_star_l))
+
 
     ##  Relaxes to initial profile below certain depth (ad_i) - rudimentary 3d/2d paramaterization
 
@@ -293,6 +268,7 @@ while iteration<maxiter:
     ##  diffusion - at the moment t and s diffuse at same rate - copied from mPWP (Biddle-Clark)
     if diffusion_switch==1:
         temp,salt,oxy,u,v = pypwp.diffusion(temp,salt,oxy,u,v,temp_diff,salt_diff,oxy_diff,vel_diff,nz)
+        
     T_so = temp[0]
 
     ##  diffusion can change T/S values so recalc density
@@ -313,6 +289,7 @@ while iteration<maxiter:
     o_sens 	= pypwp.ao_sens(T_so,T_a,U_a,cd_ocean)
     sat_sp_hum 	= pypwp.saturation_spec_hum(T_so)
     o_lat 	= pypwp.ao_latent(T_so,U_a,sat_sp_hum,sp_hum,cd_ocean)
+
     ##  group terms (surface v penetrating)
     q_out	= OLR + o_sens + o_lat-ILR
     q_in	= ISW
@@ -364,9 +341,11 @@ while iteration<maxiter:
             A = 0.
             h_i = 0.
         t_flux = 0#mr*1000.0*Latent_fusion
-        sw_flux=-salt[0]*A*mr
+        sw_flux=salt[0]*A*mr
 
     elif kt_ice==1:
+        u_star_l = np.sqrt(cd_ocean * rho_air_ref / rho_ocean_ref) * U_a
+        u_star_i = np.sqrt(cd_ice * rho_air_ref / rho_ocean_ref) * U_a
         t_fp = pypwp.liquidous(salt[0])
         if h_i>0.:
             T_si = pypwp.findroot(temp[0] - 20.0, temp[0] + 20.0, t_fp, h_snow, h_i, T_a, U_a, lw, sw, sp_hum)
@@ -376,19 +355,48 @@ while iteration<maxiter:
         basal = (density[0] * cp_ocean * u_star_i * Stanton * (temp[0] - t_fp))
         mr=(basal-cond_flux)/ rho_ice_ref / Latent_fusion
         if temp[0]<t_fp:
-            A=A_grow
+            if A<A_grow:
+                latheat=(1.-A)*(density[0] * cp_ocean * u_star_l  * (temp[0] - t_fp))
+                dA = latheat/(Latent_fusion * rho_ice_ref * h_i)
+                r_base=0.
+                A-=dA*dt
+                ridge=0.0
+            else:
+                latheat=(1.-A)*(density[0] * cp_ocean * u_star_l  * (temp[0] - t_fp))
+                dA=0.
+                r_base=latheat
+                A=A_grow
+                ridge=latheat*(1.-A)/(Latent_fusion*rho_ice_ref)
         else:
-            A = A_melt
+            if A > A_melt:
+                latheat = (1. - A) *(density[0] * cp_ocean * u_star_l *Stanton * (temp[0] - t_fp))
+                dA =  (1. - R_b) * latheat / (Latent_fusion * rho_ice_ref * h_i)
+                A += -dA * dt
+                r_base=(latheat*R_b)
+                mr += (r_base)/rho_ice_ref/Latent_fusion
+                ridge=0.0
+
+            else:
+                latheat=0.
+                dA=0.
+                r_base=0.
+                A=A_melt
+                ridge=0.0
+
         h_i-=mr*dt
+
         if h_i<h_ice_min:
             h_i=h_ice_min
             mr=0.
             basal=0.
-        sw_flux =(rho_ice_ref/rho_ocean_ref)*(salt[0]  - S_ice) * A * mr
-        t_flux = A/(rho_ocean_ref*cp_ocean) * basal
+
+        sw_flux =(rho_ice_ref/rho_ocean_ref)*(salt[0]  - S_ice) * (A * (mr+ridge)+dA*h_i)
+        t_flux = 1./(rho_ocean_ref*cp_ocean) * (A*basal+latheat)
         temp[0:ml_index + 1] += - t_flux* dt / ml_depth
         salt[0:ml_index + 1] += -sw_flux*dt/ml_depth
 
+        if A>A_melt:
+            A-=Div*A
 
     ##  Penetrating shortwave below ML depth
     temp[ml_index+1:] = temp[ml_index+1:]+(1.-A)*ISW*absrb[ml_index+1:]*dt/(dz*density[ml_index+1:]*cp_ocean)
@@ -402,15 +410,15 @@ while iteration<maxiter:
     #######################################################
 
     if kt_switch==1:
-        fw_flux= -salt[0]*(((1.-A)*emp))+sw_flux # these both neg if salty  pos if stabilizing
-        sol_flux=((1.-A)*(q_out-q_in*0.45)+A*Ice_sw)/(rho_ocean_ref*cp_ocean)
-        temp_flux=sol_flux-t_flux
+        fw_flux= -salt[0]*(((1.-A)*emp))+sw_flux
+        temp_flux=(1.-A)*(q_out-q_in*0.45)/(rho_ocean_ref*cp_ocean)-t_flux
         u_star = U_a*(((rho_air_ref/rho_ocean_ref)*cd_ocean))**(1./2.)		#neglects ice shear - assume u_i=u_ocean (urel=0)
                                                                                     #alt such as petty assume urel=u_10 not sure if better or worse. (cd_i>cd_o so wind mixing ^ with A ^
 
         Pw = ((2.*m_kt)*np.e**(-ml_depth/dw)*u_star**3) 			# Power for mixing supplied by wind
         Bo = ((g*alpha)*(temp_flux)) - (g*beta*(fw_flux))	# buoyancy forcing
         Pb = (ml_depth/2.)*((1.+n_kt)*Bo-(1.-n_kt)*abs(Bo))	# Power for mixing supplied by buoyancy change?
+
         we = (Pw+Pb)/(ml_depth*(g*alpha*(temp[0]-temp[ml_index+1])-g*beta*(salt[0]-salt[ml_index+1])))
 
 
@@ -432,6 +440,7 @@ while iteration<maxiter:
             ml_depth_test = (Pw /(-Bo)) # sometimes this gives huge value when switching and results in artifacts.
             if ml_depth_test<ml_depth:
                 ml_depth=ml_depth_test
+
 
 
         if ml_depth < ml_min:
@@ -493,8 +502,8 @@ while iteration<maxiter:
     oxy=pypwp.Oxygen_change(temp, salt, oxy, density, U_a, ml_depth,ml_index, dt,A)
 
     if iteration%dt_save==0: #actually save data.
-        perc=iteration/maxiter*100.
-        print("%.2f" % perc,ml_depth,h_i,salt[0],temp[0],sw_flux/salt[0]*(((1.-A)*emp)))
+        perc = iteration / maxiter * 100.
+        print("%.2f" % perc,ml_depth,h_i,A)
         f_iter=filename+str(iteration/dt_save)
         mld_save.append(ml_depth)
         h_i_save.append(h_i)
@@ -503,12 +512,15 @@ while iteration<maxiter:
         pw_save.append(Pw)
         Bo_save.append(Bo)
         mr_save.append(mr)
+        A_save.append(A)
+        tml.append(temp[0])
+        sml.append(salt[0])
         np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v)
 
     iteration+=1
 
 filename='scalars'
-np.savez(os.path.join(save_path,filename),mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,hi=h_i_save,bo=Bo_save,mr=mr_save)
+np.savez(os.path.join(save_path,filename),mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,hi=h_i_save,bo=Bo_save,mr=mr_save,A=A_save,tml=tml,sml=sml)
 end = tp.time()
 print(end - start)
 

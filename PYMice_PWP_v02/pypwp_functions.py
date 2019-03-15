@@ -42,15 +42,12 @@ def saturation_spec_hum_petty(ts):
 ##   Diffusion ##  todo this does not permit double diffusion? need to understand where this comes from
 #################
 
-def diffusion(temp,salt,oxy,u,v,tracer_diff,oxy_diff,vel_diff,nz):
-    dstab1 = tracer_diff #0.001;
-    dstab2 = vel_diff #0.005;
-    dstab3 = oxy_diff  #0.001;
-    temp[1:nz-1] = temp[1:nz-1]+dstab1*(temp[0:nz-2]-2.*temp[1:nz-1]+temp[2:])
-    salt[1:nz-1] = salt[1:nz-1]+dstab1*(salt[0:nz-2]-2.*salt[1:nz-1]+salt[2:])
-    oxy[1:nz-1] = oxy[1:nz-1]+dstab3*(oxy[0:nz-2]-2.*oxy[1:nz-1]+oxy[2:])
-    u[1:nz-1] = u[1:nz-1]+dstab2*(u[0:nz-2]-2.*u[1:nz-1]+u[2:])
-    v[1:nz-1] = v[1:nz-1]+dstab2*(v[0:nz-2]-2.*v[1:nz-1]+v[2:])
+def diffusion(temp,salt,oxy,u,v,temp_diff,salt_diff,oxy_diff,vel_diff,nz):
+    temp[1:nz-1] = temp[1:nz-1]+temp_diff*(temp[0:nz-2]-2.*temp[1:nz-1]+temp[2:])*dt/(dz**2)
+    salt[1:nz-1] = salt[1:nz-1]+salt_diff*(salt[0:nz-2]-2.*salt[1:nz-1]+salt[2:])*dt/(dz**2)
+    oxy[1:nz-1] = oxy[1:nz-1]+oxy_diff*(oxy[0:nz-2]-2.*oxy[1:nz-1]+oxy[2:])*dt/(dz**2)
+    u[1:nz-1] = u[1:nz-1]+vel_diff*(u[0:nz-2]-2.*u[1:nz-1]+u[2:])*dt/(dz**2)
+    v[1:nz-1] = v[1:nz-1]+vel_diff*(v[0:nz-2]-2.*v[1:nz-1]+v[2:])*dt/(dz**2)
     return temp,salt,oxy,u,v
 
 #############################
@@ -231,6 +228,15 @@ def Ocean_relax(t,s,o,t_0,s_0,o_0,ad_i,OR_ts):
     s[ad_i:] = s[ad_i:] + dsalt
     doxy = ((-OR_ts*(o[ad_i:]-o_0[ad_i:])))
     o[ad_i:] = o[ad_i:] + doxy
+    return t, s, o
+
+def Ocean_relax_ml(t,s,o,t_0,s_0,o_0,ad_i,mli,OR_ts):
+    dtemp = ((-OR_ts*(t[mli:ad_i]-t_0[mli:ad_i])))	#fake advection below ad_i/relax to ocean state. not sure why times -0.001
+    t[mli:ad_i] = t[mli:ad_i] + dtemp
+    dsalt = ((-OR_ts*(s[mli:ad_i]-s_0[mli:ad_i])))
+    s[mli:ad_i] = s[mli:ad_i] + dsalt
+    doxy = ((-OR_ts*(o[mli:ad_i]-o_0[mli:ad_i])))
+    o[mli:ad_i] = o[mli:ad_i] + doxy
     return t, s, o
 
 
