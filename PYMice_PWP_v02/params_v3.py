@@ -9,9 +9,9 @@ loadcase        = 0
 # krauss turner
 kt_switch       = 1
 #Biddle Clark Ice (from thesis)
-bc_ice          = 1
+bc_ice          = 0
 # modified akin to petty et al
-kt_ice          = 0
+kt_ice          = 1
 #f or conductivity term in heat balance of kt_ice- implemented mainly for testing
 cond_on     =  1        #
 # critical bulk richardson number (0.65) set to 0 to turn off.
@@ -42,9 +42,9 @@ vel_diff	= 5e-4*change 	# diffusion of velocity fields.
 ##############################################
 
 # upper limit of sea ice concentration.
-A_grow      =                                                                          0.20 
+A_grow      =                                                   0.9
 # lower limit of sea ice concentration.
-A_melt      =                                                                          0.20 
+A_melt      =                                                   0.0
 # initial sea ice concentration
 A_0		    = A_melt
 A_min       = 0
@@ -57,7 +57,7 @@ h_ice_min	= 0.
 # snow thickness
 h_snow      =       0.0
 # divergence of ice concentration (v3 only)
-Div_yr =                 -0.8 
+Div_yr =                                         -0.0
 # lateral vs basal melting paramater (1 for all basal )
 R_b=                 0.6
 
@@ -95,7 +95,12 @@ OR_timescale              =1./OR_d
 
 
 #convert ice divergence to seconds
-Div=1./(Div_yr*365.*24.*60.*60./dt)
+dy=Div_yr
+if dy==0:
+    Div=0.
+    print('rightyo')
+else:
+    Div=1./(Div_yr*365.*24.*60.*60./dt)
 
 #if relaxation below a specific depth, ad, get the index of this depth
 

@@ -2,7 +2,7 @@ import numpy as np
 import os as os
 from params import *
 
-
+# Used in density EOS
 def pure_water_eos(T):
     a0 = 999.842594
     a1 =   6.793952e-2
@@ -13,6 +13,7 @@ def pure_water_eos(T):
     dens = a0 + (a1 + (a2 + (a3 + (a4 + a5*T)*T)*T)*T)*T
     return dens
 
+# Density EOS for seawater.
 def density_0(T,S):
     b0 =  8.24493e-1
     b1 = -4.0899e-3
@@ -23,11 +24,16 @@ def density_0(T,S):
     c1 =  1.0227e-4
     c2 = -1.6546e-6
     d0 = 4.8314e-4
-    dens = pure_water_eos(T) + (b0 + (b1 + (b2 + (b3 + b4*T)*T)*T)*T)*S + (c0 + (c1 + c2*T)*T)*S*(np.sqrt(S)) + d0*S**2.
+    check = len([x for x in S if x < 0])
+    if check>0:
+        print check
+    dens = pure_water_eos(T) + (b0 + (b1 + (b2 + (b3 + b4*T)*T)*T)*T)*S + (c0 + (c1 + c2*T)*T)*S*(np.sqrt(np.real(S))) + d0*S**2.
     return dens
 
+#approximation of the liquidous temperature in Celsius. (only first term)
 def liquidous(S):
     return -0.054*S
+
 
 def saturation_spec_hum(ts):
     ew = 6.112*np.e**((17.62*(ts))/(243.12+ts))
@@ -35,13 +41,15 @@ def saturation_spec_hum(ts):
     #Using AOMIP definition of specific humidity. Can't find description of where 0.378 comes from
     sat_sp_hum = (ep*ew)/(P_atm - (0.378*ew))
     return sat_sp_hum
+
+#same as used in Petty er al 2013
 def saturation_spec_hum_petty(ts):
     return 157600000. / ((P_atm/1000. * np.exp(5420. / (ts+273.15))- 95600000.))
 
 #################
-##   Diffusion ##  todo this does not permit double diffusion? need to understand where this comes from
+##   Diffusion ##
 #################
-
+#YOu could spend a career playing with the values of diffusion in a 1d model to be told that you've wasted your career
 def diffusion(temp,salt,oxy,u,v,temp_diff,salt_diff,oxy_diff,vel_diff,nz):
     temp[1:nz-1] = temp[1:nz-1]+temp_diff*(temp[0:nz-2]-2.*temp[1:nz-1]+temp[2:])*dt/(dz**2)
     salt[1:nz-1] = salt[1:nz-1]+salt_diff*(salt[0:nz-2]-2.*salt[1:nz-1]+salt[2:])*dt/(dz**2)
@@ -59,7 +67,6 @@ def absorb(beta1,beta2,nz,dz):
 #  Compute solar radiation absorption profile. This
 #  subroutine assumes two wavelengths, and a double
 #  exponential depth dependence for absorption.
-
 #  Subscript 1 is for red, non-penetrating light, and
 #  2 is for blue, penetrating light. rs1 is the fraction
 #  assumed to be red.
@@ -77,9 +84,8 @@ def absorb(beta1,beta2,nz,dz):
 
 
 #############################
-##  heat budget functions  ##
+##  heat budget functions  ## T inputs in celsius
 #############################
-
 
 def lw_emission(T_in,emiss):
     return emiss*stef_boltz*((T_in+273.15)**4)
@@ -136,15 +142,15 @@ def stir(rc, r_temp, j, t, s, d, u, v, oxy):
     rcon = 0.02 + (rc - r_temp) / 2.
     rnew = rc + rcon / 5.
     temporary_f = 1. - r_temp / rnew
-    temporary_f = 1. - r_temp / rnew
     dtemp = (t[j + 1] - t[j]) * temporary_f / 2.
     t[j + 1] = t[j + 1] - dtemp
     t[j] = t[j] + dtemp
     ds = (s[j + 1] - s[j]) * temporary_f / 2.
     s[j + 1] = s[j + 1] - ds
     s[j] = s[j] + ds
-    d[j] = density_0(t[j], s[j])
-    d[j + 1] = density_0(t[j + 1], s[j + 1])
+    #denstemp=(d[j+1]-d[j])*temporary_f/2.
+    #d[j+1] = d[j+1]-denstemp
+    d[j:j+2] = density_0(t[j:j+2],s[j:j+2])
     du_temp = (u[j + 1] - u[j]) * temporary_f / 2.
     u[j + 1] = u[j + 1] - du_temp
     u[j] = u[j] + du_temp
@@ -154,18 +160,24 @@ def stir(rc, r_temp, j, t, s, d, u, v, oxy):
     do2 = (oxy[j + 1] - oxy[j]) * temporary_f/2.
     oxy[j + 1] = oxy[j + 1] - do2
     oxy[j] = oxy[j] + do2
+   # print (ds, dtemp, denstemp, do2, du_temp, dv)
+
     return t, s, d, u, v, oxy
+
 
 def grad_mix(dz,g,rg,nz,z,t,s,d,u,v,oxy,ml_index): #PWP mixing based on gradient richardson number
 
 #  This function performs the gradeint Richardson Number relaxation
 #  by mixing adjacent cells just enough to bring them to a new
 #  Richardson Number.
-    rc 	= rg
+
 #  Compute the gradeint Richardson Number, taking care to avoid dividing by
 #  zero in the mixed layer.  The numerical values of the minimum allowable
 #  density and velocity differences are entirely arbitrary, and should not
 #  effect the calculations (except that on some occasions they evidnetly have!)
+# the values I've used here for min dd/dv are arbitrary and appaear to recover solutions for where this function does not give errors
+# imaginary density/negative salinity/looping forever.  one might put these in bulk richardson as well but no issue there yet
+    rc 	= rg
     check=1
     j1 = 0
     j2 = nz-2
@@ -176,6 +188,8 @@ def grad_mix(dz,g,rg,nz,z,t,s,d,u,v,oxy,ml_index): #PWP mixing based on gradient
             dv = (u[j+1]-u[j])**2+(v[j+1]-v[j])**2
             if dv < 1E-15: #changed this from ==0
                 r_check[j] = 99999.
+            elif dd<1e-20:
+                r_check[j] = 99999
             else:
                 r_check[j] = g*dd*dz/dv
         min_rg = np.min(r_check)  #todo need index as well
@@ -184,13 +198,9 @@ def grad_mix(dz,g,rg,nz,z,t,s,d,u,v,oxy,ml_index): #PWP mixing based on gradient
         else:
     #  Mix the cells js and js+1 that had the smallest Richardson Number
             min_ind = int(np.argmin(r_check))
-            if type(min_ind)!=int:
-                print(min_ind, min_rg)
-                break
             js = min_ind
             t, s, d, u, v, oxy = stir(rc, min_rg, js, t, s, d, u, v, oxy)
             t, s, u, v, d, ml_index = remove_static_instabilities(ml_index, t, s, u, v, d)#  Recompute the Richardson Number over the part of the profile that has changed
-
             j1 = js-2
             if j1 < 0:
                 j1 = 0
@@ -208,7 +218,7 @@ def bulk_mix(ml_index,rb,d,u,v,t,s,z,nz): #mixing for PWP based on Bulk Richards
         h 	= z[j]
         dd 	= (d[j]-d[0])/d[0]
         dv 	= (u[j]-u[0])**2+(v[j]-v[0])**2
-        if dv < 1E-15:
+        if dv < 1E-15: #as above
             rv = 9999.
         else:
             rv = g*h*dd/dv #save rv below this in here and matlab and compare?
@@ -220,9 +230,9 @@ def bulk_mix(ml_index,rb,d,u,v,t,s,z,nz): #mixing for PWP based on Bulk Richards
     return ml_index,d,u,v,t,s
 
 
-
+#fake advection below ad_i/mixed layer. relax to initiail profile
 def Ocean_relax(t,s,o,t_0,s_0,o_0,ad_i,OR_ts):
-    dtemp = ((-OR_ts*(t[ad_i:]-t_0[ad_i:])))	#fake advection below ad_i/relax to ocean state. not sure why times -0.001
+    dtemp = ((-OR_ts*(t[ad_i:]-t_0[ad_i:])))
     t[ad_i:] = t[ad_i:] + dtemp
     dsalt = ((-OR_ts*(s[ad_i:]-s_0[ad_i:])))
     s[ad_i:] = s[ad_i:] + dsalt
@@ -240,7 +250,7 @@ def Ocean_relax_ml(t,s,o,t_0,s_0,o_0,ad_i,mli,OR_ts):
     return t, s, o
 
 
-
+#see louise Biddle-Clark Thesis for this
 def Oxygen_change(t,s,oxy,d,UU,ml_depth,ml_index,dt,A,): #todo turn on ice
 
     oxy_sat = sw_sat_oxy(s[0],t[0])
@@ -277,7 +287,7 @@ def sw_sat_oxy(S,T):
     c = np.e**(lnC)
     return c
 
-
+# below is modified sea ice similar to petty et al 2015
 def aio_sens(T_si,T_a,U_a):
     return rho_air_ref*cp_air*C_turb_i*U_a*(T_si-T_a)
 
@@ -290,7 +300,7 @@ def ice_cond_heat(T_si, T_f, h_ice,h_snow):
 
 
 
-
+# solve for balance to find Delta T across ice
 def findroot(t_low, t_high,t_fp,h_snow,h_ice,T_a,U_a,lw,sw,sp_hum):
     t1 = t_high
     t0 = t_low

@@ -14,7 +14,7 @@ import datetime
 from optparse import OptionParser
 import os
 from shutil import copyfile
-from params import *
+from params_v3 import *
 import pypwp_functions as pypwp
 
 usage = """%prog output_dir data_fname param_name """
@@ -33,7 +33,7 @@ parser.add_option("--init",dest="profile_input",
                       help="name of initial profile file (expects .mat type for now)")
 
 parser.add_option("--force",dest="met_input",
-                      default="AS_longmet.mat",
+                      default="mpwp_met08_seal60S.mat",
                       help="name of forcing file (expects .mat type for now)")
 
 options, args = parser.parse_args()
@@ -41,7 +41,7 @@ options, args = parser.parse_args()
 if options.output_dir is None:
     date = datetime.datetime.now()
     simdate = str(date)[0:4] + str(date)[5:7] + str(date)[8:10] + '_' + str(date)[11:13] + str(date)[14:16]
-    base_path = 'ham' #+ str(simdate)
+    base_path = 'test_mpwp_chloe' #+ str(simdate)
     print("output directory not specified - using default: "+str(base_path))
 else:
     base_path=str(options.output_dir)
@@ -109,66 +109,52 @@ def plot_preliminary(time, lw_force, sw_force, T_force,U_force):
     plt.clf()
     return 0
 
-################################################# some things here may not be needed with certain switches (mr) but
-##   Initialize simulation paramaters/arrays   ## setting them to 0 here and setting the save means no other adjustment is needed
-################################################# besides setting the switch. not huge cost and fewer ifs.
-
-maxiter     = days*8.64e4/dt
-nz          = int(depth/dz)+1
-z           = np.arange(0,int(nz))*dz
-temp        = np.zeros(nz)
-salt        = np.zeros(nz)
-oxy         = np.zeros(nz)
-
-# Initiate ice/ml
-
-h_i         = h_i0
-A           = A_0
-ml_depth    = (dz*ml_depth_0)//dz
-ml_index    = int(round(ml_depth_0/dz))
-##  Initialize scalar arrays  ##
-
-mld_save=[]
-h_i_save=[]
-we_save=[]
-mr_save=[]
-pb_save=[]
-pw_save=[]
-Bo_save=[]
-A_save=[]
-tml=[]
-sml=[]
-we  = 0
-Pb  = 0
-Pw  = 0
-Bo  = 0
-mr  = 0
-A=A_0
-
-u = np.zeros(nz)
-v = np.zeros(nz)
-
-absrb = pypwp.absorb(beta1,beta2,nz,dz)
-
 
 ##########################################
 ##   LOAD FORCING AND INITIAL PROFILE   ##
 ##########################################
 
-print('loading ', str(met_input_file))
 
-met_forcing = sio.loadmat(met_input_file)
 
-# import forcing data
-time_series = met_forcing['met']['time'][0,0][:,0]
-T_a_series = met_forcing['met']['tair'][0,0][:,0]
-lw_series = met_forcing['met']['lw'][0,0][:,0]
-sw_series = met_forcing['met']['sw'][0,0][:,0]
-shum_series = met_forcing['met']['shum'][0,0][:,0]
-precip_series = met_forcing['met']['precip'][0,0][:,0]
-U_a_series = met_forcing['met']['U'][0,0][:,0]
-tx_series = met_forcing['met']['tx'][0,0][:,0]
-ty_series = met_forcing['met']['ty'][0,0][:,0]
+if loadcase==0:
+    met_forcing = sio.loadmat(met_input_file)
+    time_series = met_forcing['met']['time'][0,0][:,0]
+    T_a_series = met_forcing['met']['tair'][0,0][:,0]
+    lw_series = met_forcing['met']['lw'][0,0][:,0]
+    sw_series = met_forcing['met']['sw'][0,0][:,0]
+    shum_series = met_forcing['met']['shum'][0,0][:,0]
+    precip_series = met_forcing['met']['precip'][0,0][:,0]
+    U_a_series = met_forcing['met']['U'][0,0][:,0]
+    tx_series = met_forcing['met']['tx'][0,0][:,0]
+    ty_series = met_forcing['met']['ty'][0,0][:,0]
+
+# some test cases
+elif loadcase==1:
+    fname='forcing_test.npz'
+    met_forcing=np.load(fname)
+    print filename
+    time_series = met_forcing['time'][344:-345] -344/24
+    T_a_series = met_forcing['tair'][344:-345]
+    lw_series = met_forcing['lw'][344:-345]
+    sw_series = met_forcing['sw'][344:-345]
+    shum_series = met_forcing['shum'][344:-345]
+    precip_series = met_forcing['precip'][344:-345]/1000.
+    U_a_series = met_forcing['U'][344:-345]
+    tx_series = met_forcing['tx'][344:-345]
+    ty_series = met_forcing['ty'][344:-345]
+    T_a_series[:]=[ x - 273.15 for x in T_a_series]
+    """ #u un string if want to loop it
+    for i in range(0,2):
+        T_a_series = np.append(T_a_series,T_a_series,axis=0)
+        lw_series = np.append(lw_series,lw_series,axis=0)
+        sw_series = np.append(sw_series,sw_series,axis=0)
+        shum_series = np.append(shum_series,shum_series,axis=0)
+        precip_series = np.append(precip_series,precip_series,axis=0)
+        U_a_series = np.append(U_a_series,U_a_series,axis=0)
+        tx_series = np.append(tx_series,tx_series,axis=0)
+        ty_series = np.append(ty_series,ty_series,axis=0)
+    time_series = np.arange(len(shum_series))/24.
+    """
 
 
 time=np.arange(0,maxiter)*dt/8.64e4+time_series[0]
@@ -177,7 +163,7 @@ if time[-1] > time_series[-1]:      # check that length of forcing time> sim tim
     time = time[time<time_series[-1]]
     maxiter = len(time)
     maxiter = len(time)
-    print('Met input shorter than # of days selected, truncating run to ', nmet*dt/8.64E4, ' day(s)')
+    print('Met input shorter than # of days selected, truncating run to ', time[-1], ' day(s)')
 
 
 #  Check the time-resolution of the inertial period and warn - dont have this as check not sure if wanted.
@@ -197,20 +183,34 @@ ty_force    = griddata(time_series,ty_series,time)
 
 
 #  -- Load initial t,s profile data. --
-print('loading', str(profile_input_file))
-
-initial_profile=sio.loadmat(profile_input_file)
-initial_z=initial_profile['profile']['z'][0,0][0,:]
-initial_salt=initial_profile['profile']['s'][0,0][0,:]
-initial_temp=initial_profile['profile']['t'][0,0][0,:]
-initial_oxy=initial_profile['profile']['oxy'][0,0][0,:]
-initial_density=initial_profile['profile']['d'][0,0][0,:]
-
+profload=2
+if profload==1:
+    profile_input_file = "/home/thielen/Desktop/ttest/soccom_prof.npz"
+    initial_profile=np.load(profile_input_file)
+    initial_z=initial_profile['depth'][0:376]
+    initial_salt=initial_profile['salt'][0:376]
+    initial_temp=initial_profile['temp'][0:376]
+    initial_oxy=initial_profile['oxy'][0:376]
+elif profload == 2:
+    profile_input_file = "/home/thielen/Desktop/ttest/southern_seal_PWP.mat"
+    initial_profile = sio.loadmat(profile_input_file)
+    initial_z = initial_profile['pres'][:, 0]
+    initial_temp = initial_profile['temp'][:, 0]
+    initial_salt = initial_profile['sal'][:, 0]
+    initial_oxy = np.zeros(len(initial_z))
+else:
+    initial_profile=sio.loadmat(profile_input_file)
+    initial_z=initial_profile['profile']['z'][0,0][0,:]
+    initial_salt=initial_profile['profile']['s'][0,0][0,:]
+    initial_temp=initial_profile['profile']['t'][0,0][0,:]
+    initial_oxy=initial_profile['profile']['oxy'][0,0][0,:]
+    initial_density=initial_profile['profile']['d'][0,0][0,:]
+print('loaded', str(profile_input_file))
 
 # Check depth domain of initial profile and truncate to deepest point of observations if shorter
 if depth > initial_z[-1]:
-    depth = initial_z[-1]
-    nz = depth / dz
+    depth = dz * initial_z[-1] // dz
+    nz = int(depth // dz) + 1
     z = np.arange(0, nz) * dz
     print('Profile input shorter than depth selected, truncating to', str(depth), ' meters')
 
@@ -218,9 +218,46 @@ if depth > initial_z[-1]:
 #  -- Interpolate the profile variables at dz resolution. --
 temp	= griddata(initial_z,initial_temp,z)
 salt	= griddata(initial_z,initial_salt,z)
-density	= griddata(initial_z,initial_density,z)
 oxy = griddata(initial_z,initial_oxy,z)
 
+#if no surface value get nans at top so just copy the highest value
+temp[np.isnan(temp)]=initial_temp[0]
+salt[np.isnan(salt)]=initial_salt[0]
+oxy[np.isnan(oxy)]=initial_oxy[0]
+density=pypwp.density_0(temp, salt)
+
+################################################# some things here may not be needed with certain switches (mr) but
+##   Initialize simulation paramaters/arrays   ## setting them to 0 here and setting the save means no other adjustment is needed
+################################################# besides setting the switch. not huge cost and fewer ifs.
+# Initiate ice/ml
+h_i         = h_i0
+A           = A_0
+ml_depth    = (dz*ml_depth_0)//dz
+ml_index    = int(round(ml_depth_0/dz))
+##  Initialize scalar arrays  ##
+mld_save=[]
+h_i_save=[]
+we_save=[]
+mr_save=[]
+pb_save=[]
+pw_save=[]
+Bo_save=[]
+A_save=[]
+tml=[]
+sml=[]
+we  = 0
+Pb  = 0
+Pw  = 0
+Bo  = 0
+mr  = 0
+A=A_0
+ridge=0.0
+sw_flux = 0
+t_flux=0
+u = np.zeros(nz)
+v = np.zeros(nz)
+# initialize radiative absorbtion profile
+absrb = pypwp.absorb(beta1,beta2,nz,dz)
 
 #convert oxygen into umol/kg
 oxy = oxy*44.658
@@ -233,6 +270,20 @@ salt_orig=salt.copy()
 oxy_orig=oxy.copy()
 density=pypwp.density_0(temp_orig,salt_orig)
 
+#calculate ml depth of initial profile
+i=0
+check=0
+while check==0:
+    i+=1
+    crit=-(density[0]-density[i])
+    print crit
+    if crit>0.03:
+        check=i
+ml_depth=check
+ml_index = int(round(ml_depth / dz))
+
+
+#if snow use snow albedo otherwise ice
 if h_snow > 0.001:
     si_albedo = snow_albedo
 else:
@@ -281,6 +332,9 @@ while iteration<maxiter:
     ##  radiation terms
     OLR 	= pypwp.lw_emission(T_so,ocean_emiss)
     ILR 	= pypwp.lw_downwelling(lw,ocean_emiss)
+    if profload==2:
+        OLR=lw
+        ILR=0.
     ISW 	= pypwp.sw_downwelling(sw,ocean_albedo)
     Ice_sw  = pypwp.sw_downwelling(sw,si_albedo)
     Ice_lw  = pypwp.lw_downwelling(lw,si_emiss)
@@ -340,42 +394,41 @@ while iteration<maxiter:
             mr = 0.
             A = 0.
             h_i = 0.
-        t_flux = 0#mr*1000.0*Latent_fusion
+        t_flux = mr*1000.0*Latent_fusion
         sw_flux=salt[0]*A*mr
 
     elif kt_ice==1:
         u_star_l = np.sqrt(cd_ocean * rho_air_ref / rho_ocean_ref) * U_a
         u_star_i = np.sqrt(cd_ice * rho_air_ref / rho_ocean_ref) * U_a
         t_fp = pypwp.liquidous(salt[0])
-        if h_i>0.:
+        if h_i>0.0:
             T_si = pypwp.findroot(temp[0] - 20.0, temp[0] + 20.0, t_fp, h_snow, h_i, T_a, U_a, lw, sw, sp_hum)
             cond_flux=pypwp.ice_cond_heat(T_si,t_fp,h_i,h_snow)
         else:
             cond_flux=0.
         basal = (density[0] * cp_ocean * u_star_i * Stanton * (temp[0] - t_fp))
         mr=(basal-cond_flux)/ rho_ice_ref / Latent_fusion
-        if temp[0]<t_fp:
+        if temp[0]<t_fp and h_i>0.1:
             if A<A_grow:
-                latheat=(1.-A)*(density[0] * cp_ocean * u_star_l  * (temp[0] - t_fp))
+                latheat=(1.-A)*(density[0] * cp_ocean * u_star_l * (temp[0] - t_fp))
                 dA = latheat/(Latent_fusion * rho_ice_ref * h_i)
                 r_base=0.
                 A-=dA*dt
                 ridge=0.0
             else:
-                latheat=(1.-A)*(density[0] * cp_ocean * u_star_l  * (temp[0] - t_fp))
+                latheat=(1.-A)*(density[0] * cp_ocean * u_star_l * (temp[0] - t_fp))
                 dA=0.
-                r_base=latheat
+                r_base=0
                 A=A_grow
                 ridge=latheat*(1.-A)/(Latent_fusion*rho_ice_ref)
-        else:
+        elif h_i>0:
             if A > A_melt:
-                latheat = (1. - A) *(density[0] * cp_ocean * u_star_l *Stanton * (temp[0] - t_fp))
+                latheat = (1. - A) *(density[0] * cp_ocean * u_star_l * (temp[0] - t_fp))
                 dA =  (1. - R_b) * latheat / (Latent_fusion * rho_ice_ref * h_i)
                 A += -dA * dt
                 r_base=(latheat*R_b)
                 mr += (r_base)/rho_ice_ref/Latent_fusion
                 ridge=0.0
-
             else:
                 latheat=0.
                 dA=0.
@@ -383,12 +436,16 @@ while iteration<maxiter:
                 A=A_melt
                 ridge=0.0
 
-        h_i-=mr*dt
 
-        if h_i<h_ice_min:
+        h_i-=mr*dt+ridge*dt
+
+        if h_i<=h_ice_min:
             h_i=h_ice_min
             mr=0.
             basal=0.
+            A=0
+            latheat=0.
+            dA=0.
 
         sw_flux =(rho_ice_ref/rho_ocean_ref)*(salt[0]  - S_ice) * (A * (mr+ridge)+dA*h_i)
         t_flux = 1./(rho_ocean_ref*cp_ocean) * (A*basal+latheat)
@@ -397,6 +454,8 @@ while iteration<maxiter:
 
         if A>A_melt:
             A-=Div*A
+            if A>A_grow:
+                A=A_grow
 
     ##  Penetrating shortwave below ML depth
     temp[ml_index+1:] = temp[ml_index+1:]+(1.-A)*ISW*absrb[ml_index+1:]*dt/(dz*density[ml_index+1:]*cp_ocean)
@@ -411,7 +470,8 @@ while iteration<maxiter:
 
     if kt_switch==1:
         fw_flux= -salt[0]*(((1.-A)*emp))+sw_flux
-        temp_flux=(1.-A)*(q_out-q_in*0.45)/(rho_ocean_ref*cp_ocean)-t_flux
+        sol_flux = ((1. - A) * (q_out - q_in * 0.45) + A * Ice_sw) / (rho_ocean_ref * cp_ocean)
+        temp_flux=sol_flux-t_flux
         u_star = U_a*(((rho_air_ref/rho_ocean_ref)*cd_ocean))**(1./2.)		#neglects ice shear - assume u_i=u_ocean (urel=0)
                                                                                     #alt such as petty assume urel=u_10 not sure if better or worse. (cd_i>cd_o so wind mixing ^ with A ^
 
@@ -437,7 +497,8 @@ while iteration<maxiter:
                 we = (Pw+Pb)/(ml_depth*(g*alpha*(temp[0]-temp[ml_index+1])-g*beta*(salt[0]-salt[ml_index+1])))
                 ml_depth_test = ml_depth+we*dt
         else:
-            ml_depth_test = (Pw /(-Bo)) # sometimes this gives huge value when switching and results in artifacts.
+            ml_depth_test = ml_depth + we * dt
+#            ml_depth_test = (Pw /(-Bo)) # sometimes this gives huge value when switching and results in artifacts.
             if ml_depth_test<ml_depth:
                 ml_depth=ml_depth_test
 
@@ -502,8 +563,8 @@ while iteration<maxiter:
     oxy=pypwp.Oxygen_change(temp, salt, oxy, density, U_a, ml_depth,ml_index, dt,A)
 
     if iteration%dt_save==0: #actually save data.
-        perc = iteration / maxiter * 100.
-        print("%.2f" % perc,ml_depth,h_i,A)
+        perc = iteration / float(maxiter) * 100.
+        print("%.2f" % perc,ml_depth,h_i,A,we*dt)
         f_iter=filename+str(iteration/dt_save)
         mld_save.append(ml_depth)
         h_i_save.append(h_i)
