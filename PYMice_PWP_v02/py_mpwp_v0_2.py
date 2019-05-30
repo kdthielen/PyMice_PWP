@@ -247,7 +247,7 @@ if profload==1:
     initial_salt=initial_profile['salt']
     initial_temp=initial_profile['temp']
     initial_oxy=initial_profile['oxy']
-elif profile_input_file == "southern_seal_PWP.mat":
+elif profile_input_file == "southern_seal_PWP.mat" or profile_input_file == "Seal55_CTD12.mat":
     profile_input_file = "southern_seal_PWP.mat"
     initial_profile = sio.loadmat(profile_input_file)
     initial_z = initial_profile['pres'][:, 0]

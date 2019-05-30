@@ -571,6 +571,7 @@ while iteration<maxiter:
         np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v,depth=z)
     iteration+=1
 
+# at the moment if run fails this data is not saved. change to save as running
 filename='scalars'
 np.savez(os.path.join(save_path,filename),mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,hi=h_i_save,bo=Bo_save,mr=mr_save,A=A_save,tml=tml,sml=sml)
 end = tp.time()
