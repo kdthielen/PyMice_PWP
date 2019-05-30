@@ -95,7 +95,12 @@ OR_timescale              =1./OR_d
 
 
 #convert ice divergence to seconds
-Div=1./(Div_yr*365.*24.*60.*60./dt)
+dy=Div_yr
+if dy==0:
+    Div=0.
+    print('rightyo')
+else:
+    Div=1./(Div_yr*365.*24.*60.*60./dt)
 
 #if relaxation below a specific depth, ad, get the index of this depth
 
