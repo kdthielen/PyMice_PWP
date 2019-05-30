@@ -193,7 +193,7 @@ if profload==1:
     initial_salt=initial_profile['salt']
     initial_temp=initial_profile['temp']
     initial_oxy=initial_profile['oxy']
-elif profile_input_file == "southern_seal_PWP.mat":
+elif profile_input_file == "southern_seal_PWP.mat" or profile_input_file == "Seal55_CTD12.mat":
     profile_input_file = "southern_seal_PWP.mat"
     initial_profile = sio.loadmat(profile_input_file)
     initial_z = initial_profile['pres'][:, 0]
@@ -568,7 +568,7 @@ while iteration<maxiter:
         A_save.append(A)
         tml.append(temp[0])
         sml.append(salt[0])
-        np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v)
+        np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v,depth=z)
     iteration+=1
 
 filename='scalars'

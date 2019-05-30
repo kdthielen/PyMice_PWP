@@ -271,7 +271,7 @@ if depth > initial_z[-1]:
     nz = int(depth // dz) + 1
     z = np.arange(0, nz) * dz
     print('Profile input shorter than depth selected, truncating to', str(depth), ' meters')
-
+print z
 
 #  -- Interpolate the profile variables at dz resolution. --
 
@@ -587,7 +587,7 @@ while iteration<maxiter:
         mr_save.append(mr)
         tml.append(temp[0])
         sml.append(salt[0])
-        np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v)
+        np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v,depth=z)
     iteration+=1
 
 # at the moment if run fails this data is not saved. change to save as running
