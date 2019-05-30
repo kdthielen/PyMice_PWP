@@ -41,17 +41,14 @@ options, args = parser.parse_args()
 if options.output_dir is None:
     date = datetime.datetime.now()
     simdate = str(date)[0:4] + str(date)[5:7] + str(date)[8:10] + '_' + str(date)[11:13] + str(date)[14:16]
-    base_path = 'test_mpwp_chloe' #+ str(simdate)
+    base_path = 'pwp_v3' + str(simdate)
     print("output directory not specified - using default: "+str(base_path))
 else:
     base_path=str(options.output_dir)
 
-
 filename=str(options.data_fname)
-
 met_input_file=str(options.met_input)
 profile_input_file=str(options.profile_input)
-
 save_path =str(base_path)+'/data'
 
 #if directory already exists just add a number at the end
@@ -193,7 +190,7 @@ if profload==1:
     initial_salt=initial_profile['salt']
     initial_temp=initial_profile['temp']
     initial_oxy=initial_profile['oxy']
-elif profile_input_file == "southern_seal_PWP.mat" or profile_input_file == "Seal55_CTD12.mat":
+elif profile_input_file == "southern_seal_PWP.mat" :
     profile_input_file = "southern_seal_PWP.mat"
     initial_profile = sio.loadmat(profile_input_file)
     initial_z = initial_profile['pres'][:, 0]
@@ -207,6 +204,13 @@ elif profile_input_file =="AS_LCDW.mat" :
     initial_temp=initial_profile['profile']['t'][0,0][0,:]
     initial_oxy=initial_profile['profile']['oxy'][0,0][0,:]
     initial_density=initial_profile['profile']['d'][0,0][0,:]
+elif  profile_input_file == "seal55_ctd12.mat":
+    initial_profile=sio.loadmat(profile_input_file)
+    initial_z = initial_profile['profile']['z'][0, 0][:, 0]
+    initial_salt = initial_profile['profile']['s'][0, 0][:, 0]
+    initial_temp = initial_profile['profile']['t'][0, 0][:, 0]
+    initial_density = initial_profile['profile']['d'][0, 0][:, 0]
+    initial_oxy = np.zeros(len(initial_z))
 else:
     print('nothing loaded')
 print('loaded', str(profile_input_file))
@@ -338,7 +342,7 @@ while iteration<maxiter:
     ##  radiation terms
     OLR 	= pypwp.lw_emission(T_so,ocean_emiss)
     ILR 	= pypwp.lw_downwelling(lw,ocean_emiss)
-    if met_input_file=="mpwp_met08_seal60S.mat":
+    if met_input_file=="mpwp_met08_seal60S.mat" or met_input_file=="mpwp_met08_seal57S.mat":
         OLR=lw
         ILR=0.
     ISW 	= pypwp.sw_downwelling(sw,ocean_albedo)
@@ -494,8 +498,8 @@ while iteration<maxiter:
                 we = (Pw+Pb)/(ml_depth*(g*alpha*(temp[0]-temp[ml_index+1])-g*beta*(salt[0]-salt[ml_index+1])))
                 ml_depth_test = ml_depth+we*dt
         else:
-            ml_depth_test = ml_depth + we * dt
-            #ml_depth_test = (Pw /(-Bo)) # sometimes this gives huge value when switching and results in artifacts.
+            #ml_depth_test = ml_depth + we * dt
+            ml_depth_test = (Pw /(-Bo)) # sometimes this gives huge value when switching and results in artifacts.
             if ml_depth_test<ml_depth:
                 ml_depth=ml_depth_test
 
