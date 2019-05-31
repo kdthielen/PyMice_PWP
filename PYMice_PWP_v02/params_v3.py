@@ -56,9 +56,9 @@ S_ice		= 5.
 # minimum ice thickness
 h_ice_min	= 0.
 # snow thickness
-h_snow      =          0.2 
+h_snow      =          0.0 
 # divergence of ice concentration (v3 only)
-Div_yr =                 -0.4 
+Div_yr =                 0 
 # lateral vs basal melting paramater (1 for all basal )
 R_b=                       0.8 
 
