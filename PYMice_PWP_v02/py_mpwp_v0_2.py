@@ -310,13 +310,24 @@ mr_save=[]
 pb_save=[]
 pw_save=[]
 Bo_save=[]
+A_save=[]
 tml=[]
 sml=[]
+sw_save=[]
+tf_save=[]
+ib_save=[]
+cond_save=[]
+osens_save=[]
+o_lat_sav=[]
+emp_sav=[]
+cond = 0
 we  = 0
+time_save = 0
 Pb  = 0
 Pw  = 0
 Bo  = 0
 mr  = 0
+A=A_0
 sw_flux = 0
 t_flux=0
 u = np.zeros(nz)
@@ -355,9 +366,7 @@ else:
     si_albedo = ice_albedo
 
 # forcing_plots
-plot_preliminary(time,lw_force,sw_force,T_a_force,U_a_force)
-plot_init_profile(z,density,temp,salt)
-
+#plot_preliminary(time,lw_force,sw_force,T_a_force,U_a_force)
 
 ############################################################
 ##     END SETUP AND INITIALIZATION: START SIMULATION     ##
@@ -396,15 +405,12 @@ while iteration<maxiter:
     ############################
 
     ##  radiation terms
+    ISW = pypwp.sw_downwelling(sw, ocean_albedo)
     OLR 	= pypwp.lw_emission(T_so,ocean_emiss)
     ILR 	= pypwp.lw_downwelling(lw,ocean_emiss)
     if met_input_file=="mpwp_met08_seal60S.mat" or met_input_file=="mpwp_met08_seal57S.mat":
         OLR=lw
         ILR=0.
-    ISW 	= pypwp.sw_downwelling(sw,ocean_albedo)
-    Ice_sw  = pypwp.sw_downwelling(sw,si_albedo)
-    Ice_lw  = pypwp.lw_downwelling(lw,si_emiss)
-    ice_q=Ice_lw+Ice_sw
     ##  sensible and latent heat
     o_sens 	= pypwp.ao_sens(T_so,T_a,U_a,cd_ocean)
     sat_sp_hum 	= pypwp.saturation_spec_hum(T_so)
@@ -417,6 +423,10 @@ while iteration<maxiter:
     evap 	= o_lat/(1000.*Latent_vapor)
     emp 	= evap-precip #precip from forcing
 
+
+    Ice_sw = pypwp.sw_downwelling(sw, si_albedo)
+    Ice_lw = pypwp.lw_downwelling(lw, si_emiss)
+    ice_q = Ice_lw + Ice_sw
     # may not be necessary here as not changed from previous calc? VVV
 
     ml_depth=z[ml_index]
@@ -585,21 +595,30 @@ while iteration<maxiter:
         perc=iteration/float(maxiter)*100.
         print("%.2f" % perc,ml_depth,h_i,salt[0],temp[0],we)
         f_iter=filename+str(iteration/dt_save)
-        mld_save.append(ml_depth)
+        mld_save.append(ml_depth)           #put save in a function? best way to save these?
         h_i_save.append(h_i)
         we_save.append(we)
         pb_save.append(Pb)
         pw_save.append(Pw)
         Bo_save.append(Bo)
         mr_save.append(mr)
+        A_save.append(A)
         tml.append(temp[0])
+        time_save.append(time[iteration])
+        sw_save.append(sw_flux)
+        tf_save.append(t_flux)
+        ib_save.append(basal)
+        cond_save.append(cond)
+        osens_save.append(o_sens)
+        o_lat_sav.append(o_lat)
+        emp_sav.append(emp)
         sml.append(salt[0])
-        np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v,depth=z)
+        np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v,depth=z,time=time[iteration])
     iteration+=1
 
 # at the moment if run fails this data is not saved. change to save as running
 filename='scalars'
-np.savez(os.path.join(save_path,filename),mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,hi=h_i_save,bo=Bo_save,mr=mr_save,tml=tml,sml=sml)
+np.savez(os.path.join(save_path,filename),time=time,mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,bo=Bo_save,hi=h_i_save,mr=mr_save,A=A_save,tml=tml,sml=sml,kt_salt_flux=sw_save,kt_temp_flux=tf_save,ice_basal=ib_save,ice_cond=cond_save,o_sens=osens_save,o_lat=o_lat_sav,emp=emp_sav)
 end = tp.time()
 print(end - start)
 

@@ -42,11 +42,12 @@ vel_diff	= 5e-4*change 	# diffusion of velocity fields.
 ##############################################
 
 # upper limit of sea ice concentration.
-A_grow      =                                                   0.9
+A_grow      =         0.95
 # lower limit of sea ice concentration.
-A_melt      =                                                   0.0
+A_melt      =      0.
 # initial sea ice concentration
 A_0		    = A_melt
+# minimum sea ic concentration
 A_min       = 0
 #starting ice thickness
 h_i0        = 0.
@@ -55,21 +56,21 @@ S_ice		= 5.
 # minimum ice thickness
 h_ice_min	= 0.
 # snow thickness
-h_snow      =       0.0
+h_snow      =          0.2 
 # divergence of ice concentration (v3 only)
-Div_yr =                                         -0.0
+Div_yr =                 -0.4 
 # lateral vs basal melting paramater (1 for all basal )
-R_b=                 0.6
+R_b=                       0.8 
 
 ###################################################
 ##          Simulation Paramaters               ##
 ###################################################
-dt		    =               100
-# time-step increment for saving to file (multiples of dt)
-dt_save		= round(1600 *100./dt)
-dz		    =         3.0
+dt		    =  100
+# time-step increment for saving to file (units seconds/dt)
+dt_save		= round(160000./dt)
+dz		    =  3.0
 # the number of days to run
-days 		= 1000.
+days 		= 100.
 # the depth to run
 depth 		= 750.
 # this is a bit deprecated as I've put a line to find the mixed layer of the initial profile in the main

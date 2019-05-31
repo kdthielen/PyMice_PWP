@@ -9,9 +9,9 @@ loadcase        = 0
 # krauss turner
 kt_switch       = 1
 #Biddle Clark Ice (from thesis)
-bc_ice          = 1
+bc_ice          = 0
 # modified akin to petty et al
-kt_ice          = 0
+kt_ice          = 1
 #f or conductivity term in heat balance of kt_ice- implemented mainly for testing
 cond_on     =  1        #
 # critical bulk richardson number (0.65) set to 0 to turn off.
@@ -42,9 +42,9 @@ vel_diff	= 5e-4*change 	# diffusion of velocity fields.
 ##############################################
 
 # upper limit of sea ice concentration.
-A_grow      =                                                                          0.20 
+A_grow      =                                                                                                       0.9 
 # lower limit of sea ice concentration.
-A_melt      =                                                                          0.20 
+A_melt      =                                                                                                       0.2 
 # initial sea ice concentration
 A_0		    = A_melt
 A_min       = 0
@@ -64,12 +64,12 @@ R_b=                 0.6
 ###################################################
 ##          Simulation Paramaters               ##
 ###################################################
-dt		    =               100
-# time-step increment for saving to file (multiples of dt)
-dt_save		= round(1600 *100./dt)
-dz		    =         3.0
+dt		    =  100
+# time-step increment for saving to file (units seconds/dt)
+dt_save		= round(160000./dt)
+dz		    =  3.0
 # the number of days to run
-days 		= 1000.
+days 		= 100.
 # the depth to run
 depth 		= 750.
 # this is a bit deprecated as I've put a line to find the mixed layer of the initial profile in the main
