@@ -4,15 +4,13 @@ import numpy as np
 ###################################################
 ##          Switches                ##
 ###################################################
-# see main file for what loadcase corresponds to - I've used it for different data types
-loadcase        = 0
 # krauss turner
 kt_switch       = 1
 #Biddle Clark Ice (from thesis)
 bc_ice          = 0
 # modified akin to petty et al
-kt_ice          = 1
-#f or conductivity term in heat balance of kt_ice- implemented mainly for testing
+full_ice          = 1
+#f or conductivity term in heat balance of full_ice- implemented mainly for testing
 cond_on     =  1        #
 # critical bulk richardson number (0.65) set to 0 to turn off.
 rb 		        = 0.65
@@ -44,7 +42,7 @@ vel_diff	= 5e-4*change 	# diffusion of velocity fields.
 # upper limit of sea ice concentration.
 A_grow      =                                                                                                       0.9 
 # lower limit of sea ice concentration.
-A_melt      =                                                                                                       0.2 
+A_melt      =                                                                                                      0.2 
 # initial sea ice concentration
 A_0		    = A_melt
 A_min       = 0
@@ -69,7 +67,7 @@ dt		    =  100
 dt_save		= round(160000./dt)
 dz		    =  3.0
 # the number of days to run
-days 		= 100.
+days 		= 1000.
 # the depth to run
 depth 		= 750.
 # this is a bit deprecated as I've put a line to find the mixed layer of the initial profile in the main
@@ -79,17 +77,19 @@ ml_min      = 3.
 # max ml
 ml_max      = depth-dz
 # latitude (degrees)
-lat 		= 60.
+lat 		= 57.
 
 maxiter     = days*8.64e4/dt
 nz          = int(depth/dz)+1
 z           = np.arange(0,int(nz))*dz
 # time scale of relaxation
-OR_days             = 0.25*365.
+
+OR_days     = 0.75
+
 #OR_days_dw          = 11.5      #this is timescale of deepwater fom louise thesis
 
 #convert the relaxation timescale from years to seconds
-OR_d               = (OR_days*24.*60.*60.)/dt
+OR_d               = (OR_days*365.*24.*60.*60.)/dt
 OR_timescale              =1./OR_d
 
 

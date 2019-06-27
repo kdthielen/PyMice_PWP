@@ -116,8 +116,9 @@ def plot_preliminary(time, lw_force, sw_force, T_force,U_force):
 
 
 
-if loadcase==0:  #this is chloes format and louise?
+if str(met_input_file)[-3:]=="mat":  #this is chloes format and louise?
     met_forcing = sio.loadmat(met_input_file)
+    print met_input_file
     time_series = met_forcing['met']['time'][0,0][:,0]
     T_a_series = met_forcing['met']['tair'][0,0][:,0]
     lw_series = met_forcing['met']['lw'][0,0][:,0]
@@ -130,20 +131,22 @@ if loadcase==0:  #this is chloes format and louise?
 
 
 # Example of an for npz file as made from provided scripts.
-elif loadcase==1:
-    fname='forcing_test.npz'
-    met_forcing=np.load(fname)
-    print filename
+elif str(met_input_file)[-3:]=="npz":
+    #fname='forcing_test_60.npz'
+    met_forcing=np.load(met_input_file)
+    print met_input_file
     time_series = met_forcing['time']
     T_a_series = met_forcing['tair']
     lw_series = met_forcing['lw']
     sw_series = met_forcing['sw']
     shum_series = met_forcing['shum']
-    precip_series = met_forcing['precip']/1000.
+    precip_series = met_forcing['precip']
     U_a_series = met_forcing['U']
-    tx_series = met_forcing['tx']
-    ty_series = met_forcing['ty']
-    T_a_series[:]=[ x - 273.15 for x in T_a_series]
+    #cd_air = 1e-3
+    cd_air=(0.10+0.13*U_a_series-0.0022*U_a_series**2)*10**(-3)
+    tx_series = rho_air_ref*np.abs(met_forcing['u10'])*met_forcing['u10']*cd_air
+    ty_series = rho_air_ref*np.abs(met_forcing['v10'])*met_forcing['v10']*cd_air
+    print(cd_air,'cd_air')
     """ #u un string if want to loop it
     for i in range(0,2):
         T_a_series = np.append(T_a_series,T_a_series,axis=0)
@@ -188,36 +191,22 @@ ty_force    = griddata(time_series,ty_series,time)
 ###########################################
 ##  -- Load initial t,s profile data. -- ## Here are a couple examples of filetypes being loaded in
 ###########################################
-
+#todo make this a standard
 profload=0
-if profload==1:
-    profile_input_file = "/home/thielen/Desktop/ttest/soccom_prof.npz"
+if str(profile_input_file)[-3:]=="npz":
+   # profile_input_file = "/home/thielen/Desktop/ttest/soccom_prof.npz"
     initial_profile=np.load(profile_input_file)
     initial_z=initial_profile['depth']
     initial_salt=initial_profile['salt']
     initial_temp=initial_profile['temp']
     initial_oxy=initial_profile['oxy']
-elif profile_input_file == "southern_seal_PWP.mat" :
-    profile_input_file = "southern_seal_PWP.mat"
+elif str(profile_input)[-3:]=="mat" :
     initial_profile = sio.loadmat(profile_input_file)
-    initial_z = initial_profile['pres'][:, 0]
-    initial_temp = initial_profile['temp'][:, 0]
-    initial_salt = initial_profile['sal'][:, 0]
-    initial_oxy = np.zeros(len(initial_z))
-elif profile_input_file =="AS_LCDW.mat" :
-    initial_profile=sio.loadmat(profile_input_file)
-    initial_z=initial_profile['profile']['z'][0,0][0,:]
-    initial_salt=initial_profile['profile']['s'][0,0][0,:]
-    initial_temp=initial_profile['profile']['t'][0,0][0,:]
-    initial_oxy=initial_profile['profile']['oxy'][0,0][0,:]
-    initial_density=initial_profile['profile']['d'][0,0][0,:]
-elif  profile_input_file == "seal55_ctd12.mat":
-    initial_profile=sio.loadmat(profile_input_file)
-    initial_z = initial_profile['profile']['z'][0, 0][:, 0]
-    initial_salt = initial_profile['profile']['s'][0, 0][:, 0]
-    initial_temp = initial_profile['profile']['t'][0, 0][:, 0]
-    initial_density = initial_profile['profile']['d'][0, 0][:, 0]
-    initial_oxy = np.zeros(len(initial_z))
+    initial_z = initial_profile['profile']['z'][0, 0][0, :]
+    initial_salt = initial_profile['profile']['s'][0, 0][0, :]
+    initial_temp = initial_profile['profile']['t'][0, 0][0, :]
+    initial_oxy = initial_profile['profile']['oxy'][0, 0][0, :] #if you have no oxy then just make a same size array of zeros
+    initial_density = initial_profile['profile']['d'][0, 0][0, :]
 else:
     print('nothing loaded')
 print('loaded', str(profile_input_file))
@@ -270,9 +259,9 @@ cond_save=[]
 osens_save=[]
 o_lat_sav=[]
 emp_sav=[]
+time_save = []
 cond = 0
 we  = 0
-time_save = 0
 Pb  = 0
 Pw  = 0
 Bo  = 0
@@ -283,6 +272,7 @@ sw_flux = 0
 t_flux=0
 u = np.zeros(nz)
 v = np.zeros(nz)
+
 # initialize radiative absorbtion profile
 absrb = pypwp.absorb(beta1,beta2,nz,dz)
 
@@ -334,8 +324,9 @@ while iteration<maxiter:
     precip = precip_force[iteration]
     tx = tx_force[iteration]
     ty = ty_force[iteration]
-
-
+    cd_air_ice=2.36*10**(-3)
+    tio=rho_air_ref*cd_air_ice*U_a**2/3.
+    u_star_i=(tio/rho_ocean_ref)**(1./2.)
 
     ##  Relaxes to initial profile below certain depth (ad_i) - rudimentary 3d/2d paramaterization
 
@@ -359,9 +350,6 @@ while iteration<maxiter:
     ISW = pypwp.sw_downwelling(sw, ocean_albedo)
     OLR 	= pypwp.lw_emission(T_so,ocean_emiss)
     ILR 	= pypwp.lw_downwelling(lw,ocean_emiss)
-    if met_input_file=="mpwp_met08_seal60S.mat" or met_input_file=="mpwp_met08_seal57S.mat":
-        OLR=lw
-        ILR=0.
     ##  sensible and latent heat
     o_sens 	= pypwp.ao_sens(T_so,T_a,U_a,cd_ocean)
     sat_sp_hum 	= pypwp.saturation_spec_hum(T_so)
@@ -376,8 +364,7 @@ while iteration<maxiter:
 
 
     Ice_sw = pypwp.sw_downwelling(sw, si_albedo)
-    Ice_lw = pypwp.lw_downwelling(lw, si_emiss)
-    ice_q = Ice_lw + Ice_sw
+
     # may not be necessary here as not changed from previous calc? VVV
 
     ml_depth=z[ml_index]
@@ -398,7 +385,7 @@ while iteration<maxiter:
     salt[0:ml_index+1] = salt[0:ml_index+1]/(1.-(1.-A)*emp*dt/ml_depth)
 
 
-    ##  do Biddle-Clark ice scheme as in UEA thesis ch5 (2016)
+    ##  do Biddle-Clark ice scheme as in UEA thesis ch5 (2016) no sea ice salt
     if bc_ice == 1:
         t_fp = pypwp.liquidous(salt[0])
         if temp[0] < t_fp:
@@ -417,10 +404,10 @@ while iteration<maxiter:
             mr = 0.
             A = 0.
             h_i = 0.
-        t_flux = 0#mr*1000.0*Latent_fusion
+        t_flux = 0#mr*1000.0*Latent_fusion #in og this isnt fluxed to kt
         sw_flux=-salt[0]*A*mr
 
-    elif kt_ice==1:
+    elif full_ice==1:
         u_star_l = np.sqrt(cd_ocean * rho_air_ref / rho_ocean_ref) * U_a
         u_star_i = np.sqrt(cd_ice * rho_air_ref / rho_ocean_ref) * U_a
         t_fp = pypwp.liquidous(salt[0])
@@ -460,11 +447,11 @@ while iteration<maxiter:
                 ridge=0.0
         h_i-=mr*dt+ridge*dt
 
-        if h_i<=h_ice_min:
+        if h_i<=0:
             h_i=h_ice_min
             mr=0.
             basal=0.
-            A=0
+            A=0.
             latheat=0.
             dA=0.
 
@@ -477,6 +464,7 @@ while iteration<maxiter:
             A-=Div*A
             if A>A_grow:
                 A=A_grow
+
 
     ##  Penetrating shortwave below ML depth and check stability
     temp[ml_index+1:] = temp[ml_index+1:]+(1.-A)*ISW*absrb[ml_index+1:]*dt/(dz*density[ml_index+1:]*cp_ocean)
@@ -494,7 +482,8 @@ while iteration<maxiter:
         fw_flux= -salt[0]*(((1.-A)*emp))+sw_flux
         sol_flux = ((1. - A) * (q_out - q_in * 0.45) + A * Ice_sw) / (rho_ocean_ref * cp_ocean)
         temp_flux=sol_flux-t_flux
-        u_star = U_a*(((rho_air_ref/rho_ocean_ref)*cd_ocean))**(1./2.)		#neglects ice shear - assume u_i=u_ocean (urel=0)
+        #u_star = U_a*(((rho_air_ref/rho_ocean_ref)*cd_ocean))**(1./2.)		#neglects ice shear - assume u_i=u_ocean (urel=0)
+        u_star = np.sqrt((A* u_star_i * u_star_i) + ((1 - A) * u_star_l * u_star_l))
         Pw = ((2.*m_kt)*np.e**(-ml_depth/dw)*u_star**3) 			# Power for mixing supplied by wind
         Bo = ((g*alpha)*(temp_flux)) - (g*beta*(fw_flux))	# buoyancy forcing
         Pb = (ml_depth/2.)*((1.+n_kt)*Bo-(1.-n_kt)*abs(Bo))	# Power for mixing supplied by buoyancy change?
@@ -517,7 +506,6 @@ while iteration<maxiter:
             ml_depth_test = (Pw /(-Bo)) # sometimes this gives huge value when switching and results in artifacts.
             if ml_depth_test<ml_depth:
                 ml_depth=ml_depth_test
-
         if ml_depth < ml_min:
             ml_depth=ml_min
             ml_index = int(round(ml_depth / dz))
@@ -575,7 +563,7 @@ while iteration<maxiter:
 
     if iteration%dt_save==0: #actually save data.
         perc = iteration / float(maxiter) * 100.
-        print("%.2f" % perc,ml_depth,h_i,A,we*dt)
+        print("%.2f" % perc,ml_depth,h_i,A,temp[0])
         f_iter=filename+str(iteration/dt_save)
         mld_save.append(ml_depth)           #put save in a function? best way to save these?
         h_i_save.append(h_i)
@@ -600,7 +588,7 @@ while iteration<maxiter:
 
 # at the moment if run fails this data is not saved. change to save as running
 filename='scalars'
-np.savez(os.path.join(save_path,filename),time=time_save,mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,bo=Bo_save,hi=h_i_save,mr=mr_save,A=A_save,tml=tml,sml=sml,kt_salt_flux=sw_save,kt_temp_flux=tf_save,ice_basal=ib_save,ice_cond=cond_save,o_sens=osens_save,o_lat=o_lat_sav,emp=emp_sav)
+np.savez(os.path.join(save_path,filename),time=time_save,mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,bo=Bo_save,hi=h_i_save,mr=mr_save,A=A_save,tml=tml,sml=sml,ice_salt_flux=sw_save,ice_temp_flux=tf_save,ice_basal=ib_save,ice_cond=cond_save,o_sens=osens_save,o_lat=o_lat_sav,emp=emp_sav)
 end = tp.time()
 print(end - start)
 
