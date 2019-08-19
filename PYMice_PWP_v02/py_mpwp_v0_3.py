@@ -1,10 +1,7 @@
 # ctrl f "todo" for things todo#
 # todo set scalar save to not be just at end (if troubleshooting want that data)
 # todo check switches
-# todo import params change in modules
-# todo add ice/snow albedo into penetrating flux.
-
-# function for variable ice albedo
+#
 import numpy as np
 import scipy.io as sio
 from scipy.interpolate import griddata
@@ -134,31 +131,23 @@ if str(met_input_file)[-3:]=="mat":  #this is chloes format and louise?
 elif str(met_input_file)[-3:]=="npz":
     #fname='forcing_test_60.npz'
     met_forcing=np.load(met_input_file)
-    print met_input_file
-    time_series = met_forcing['time']
+    print filename
+    time_series = met_forcing['time']/24.
     T_a_series = met_forcing['tair']
     lw_series = met_forcing['lw']
     sw_series = met_forcing['sw']
     shum_series = met_forcing['shum']
     precip_series = met_forcing['precip']
-    U_a_series = met_forcing['U']
-    #cd_air = 1e-3
-    cd_air=(0.10+0.13*U_a_series-0.0022*U_a_series**2)*10**(-3)
-    tx_series = rho_air_ref*np.abs(met_forcing['u10'])*met_forcing['u10']*cd_air
-    ty_series = rho_air_ref*np.abs(met_forcing['v10'])*met_forcing['v10']*cd_air
+    u10_series = met_forcing['u10']
+    v10_series = met_forcing['v10']
+    U_a_series = np.sqrt(np.square(u10_series)+np.square(v10_series))
+    cd_air = 1e-3
+    #cd_air=(0.10+0.13*U_a_series-0.0022*U_a_series**2)*10**(-3)
+    tx_series = rho_air_ref*np.abs(u10_series)*u10_series*cd_air
+    ty_series = rho_air_ref*np.abs(v10_series)*v10_series*cd_air
+    #txi=rho_air_ref*np.abs(u10_series)*u10_series*2.36*10**(-3)/3.
+    #tyi=rho_air_ref*np.abs(v10_series)*v10_series*2.36*10**(-3)/3.
     print(cd_air,'cd_air')
-    """ #u un string if want to loop it
-    for i in range(0,2):
-        T_a_series = np.append(T_a_series,T_a_series,axis=0)
-        lw_series = np.append(lw_series,lw_series,axis=0)
-        sw_series = np.append(sw_series,sw_series,axis=0)
-        shum_series = np.append(shum_series,shum_series,axis=0)
-        precip_series = np.append(precip_series,precip_series,axis=0)
-        U_a_series = np.append(U_a_series,U_a_series,axis=0)
-        tx_series = np.append(tx_series,tx_series,axis=0)
-        ty_series = np.append(ty_series,ty_series,axis=0)
-    time_series = np.arange(len(shum_series))/24.
-    """
 ##########################
 ## dt/sim length checks ##
 ##########################
@@ -191,8 +180,8 @@ ty_force    = griddata(time_series,ty_series,time)
 ###########################################
 ##  -- Load initial t,s profile data. -- ## Here are a couple examples of filetypes being loaded in
 ###########################################
-#todo make this a standard
-profload=0
+#  detect filetype -> load -> check depth -> interpolate (fill surface nans with shallowest datapoint)
+
 if str(profile_input_file)[-3:]=="npz":
    # profile_input_file = "/home/thielen/Desktop/ttest/soccom_prof.npz"
     initial_profile=np.load(profile_input_file)
@@ -257,7 +246,9 @@ tf_save=[]
 ib_save=[]
 cond_save=[]
 osens_save=[]
-o_lat_sav=[]
+o_lat_save=[]
+olr_save=[]
+isw_save=[]
 emp_sav=[]
 time_save = []
 cond = 0
@@ -266,6 +257,9 @@ Pb  = 0
 Pw  = 0
 Bo  = 0
 mr  = 0
+basal = 0
+u_star_l = 0
+
 A=A_0
 ridge=0.0
 sw_flux = 0
@@ -324,9 +318,9 @@ while iteration<maxiter:
     precip = precip_force[iteration]
     tx = tx_force[iteration]
     ty = ty_force[iteration]
-    cd_air_ice=2.36*10**(-3)
-    tio=rho_air_ref*cd_air_ice*U_a**2/3.
-    u_star_i=(tio/rho_ocean_ref)**(1./2.)
+    #cd_air_ice=2.36*10**(-3)
+    #tio=rho_air_ref*cd_air_ice*U_a**2/3.
+    #u_star_i=(tio/rho_ocean_ref)**(1./2.)
 
     ##  Relaxes to initial profile below certain depth (ad_i) - rudimentary 3d/2d paramaterization
 
@@ -378,6 +372,11 @@ while iteration<maxiter:
     #######################################
 
     ##  flux surface fluxes evenly across existing ML #ice here perfectly reflective
+    Netsw=((1.-A)*(q_in)+A*Ice_sw)*absrb[0:ml_index+1]
+    NetOLR=(1.-A)*OLR
+    Neto_sens=(1.-A)*o_sens
+    Neto_lat=(1.-A)*o_lat
+
     temp[0:ml_index+1]+=((1.-A)*(q_in)+A*Ice_sw)*absrb[0:ml_index+1]*dt/(dz*density[0:ml_index+1]*cp_ocean)
     temp[0:ml_index + 1] = np.mean(temp[0:ml_index + 1])
     density[0:ml_index + 1] = pypwp.density_0(temp[0:ml_index + 1],salt[0:ml_index + 1])
@@ -432,7 +431,7 @@ while iteration<maxiter:
                 A=A_grow
                 ridge=latheat*(1.-A)/(Latent_fusion*rho_ice_ref)
         elif h_i>0:
-            if A > A_melt:
+            if A > A_min:
                 latheat = (1. - A) *(density[0] * cp_ocean * u_star_l * (temp[0] - t_fp))
                 dA =  (1. - R_b) * latheat / (Latent_fusion * rho_ice_ref * h_i)
                 A += -dA * dt
@@ -445,6 +444,7 @@ while iteration<maxiter:
                 r_base=0.
                 A=A_melt
                 ridge=0.0
+                h_i=0
         h_i-=mr*dt+ridge*dt
 
         if h_i<=0:
@@ -532,6 +532,8 @@ while iteration<maxiter:
     v_prev = v[0]
     du = (tx/(ml_depth*density[0]))*dt
     dv = (ty/(ml_depth*density[0]))*dt
+    #du = (tx_wilson / (ml_depth * density[0])) * dt
+    #dv = (ty_wilson / (ml_depth * density[0])) * dt
     u[0:ml_index+1] = u[0:ml_index+1]+du
     v[0:ml_index+1] = v[0:ml_index+1]+dv
 
@@ -579,8 +581,11 @@ while iteration<maxiter:
         tf_save.append(t_flux)
         ib_save.append(basal)
         cond_save.append(cond)
-        osens_save.append(o_sens)
-        o_lat_sav.append(o_lat)
+        osens_save.append(Neto_sens)
+        o_lat_save.append(Neto_lat)
+        olr_save.append(NetOLR)
+        isw_save.append(Netsw)
+
         emp_sav.append(emp)
         sml.append(salt[0])
         np.savez(os.path.join(save_path,f_iter),temp=temp,salt=salt,density=density,oxy=oxy,u=u,v=v,depth=z,time=time[iteration])
@@ -588,7 +593,7 @@ while iteration<maxiter:
 
 # at the moment if run fails this data is not saved. change to save as running
 filename='scalars'
-np.savez(os.path.join(save_path,filename),time=time_save,mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,bo=Bo_save,hi=h_i_save,mr=mr_save,A=A_save,tml=tml,sml=sml,ice_salt_flux=sw_save,ice_temp_flux=tf_save,ice_basal=ib_save,ice_cond=cond_save,o_sens=osens_save,o_lat=o_lat_sav,emp=emp_sav)
+np.savez(os.path.join(save_path,filename),time=time_save,mld=mld_save,we=we_save,pb=pb_save,pw=pw_save,bo=Bo_save,hi=h_i_save,mr=mr_save,A=A_save,tml=tml,sml=sml,ice_salt_flux=sw_save,ice_temp_flux=tf_save,ice_basal=ib_save,ice_cond=cond_save,sw=isw_save,olr=olr_save,o_sens=osens_save,o_lat=o_lat_save,emp=emp_sav)
 end = tp.time()
 print(end - start)
 

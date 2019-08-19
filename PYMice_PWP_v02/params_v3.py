@@ -5,17 +5,17 @@ import numpy as np
 ##          Switches                ##
 ###################################################
 # krauss turner
-kt_switch       = 1
+kt_switch       =         1 
 #Biddle Clark Ice (from thesis)
 bc_ice          = 0
 # modified akin to petty et al
-full_ice          = 1
+full_ice          =        1 
 #f or conductivity term in heat balance of full_ice- implemented mainly for testing
 cond_on     =  1        #
 # critical bulk richardson number (0.65) set to 0 to turn off.
-rb 		        = 0.65
+rb 		        =       0.65 
 # critical gradient richardson number (0.25) set to 0 to turn off.
-rg		        = 0.25
+rg		        =       0.25 
 # this is for inertial internal wave dissipation stuff, all other scripts I've seen have this unlabeled so assume 0
 ucon            = 0
 # relaxation switch
@@ -28,11 +28,11 @@ ad		             = 597.
 
 
 diffusion_switch    = 1
-change=                               1. 
-temp_diff	= 1e-4*change 	# diffusion paramater for t and s
+change =                          1
+temp_diff	= 1e-5*change 	# diffusion paramater for t and s
 salt_diff   = temp_diff
 oxy_diff	=temp_diff      # diffusion paramater for DO
-vel_diff	= 5e-4*change 	# diffusion of velocity fields.
+vel_diff	= 5e-5*change 	# diffusion of velocity fields.
 
 
 ##############################################
@@ -44,29 +44,29 @@ A_grow      =         0.95
 # lower limit of sea ice concentration.
 A_melt      =      0.
 # initial sea ice concentration
-A_0		    = A_melt
+A_0		    =                      0.9 
 # minimum sea ic concentration
 A_min       = 0
 #starting ice thickness
-h_i0        = 0.
+h_i0        =                    0.5 
 # average bulk salinity of sea ice
 S_ice		= 5.
 # minimum ice thickness
 h_ice_min	= 0.
 # snow thickness
-h_snow      =             0.0 
+h_snow      =      0 
 # divergence of ice concentration (v3 only)
-Div_yr =                                                                                                         0.0 
+Div_yr =                          0.8 
 # lateral vs basal melting paramater (1 for all basal )
-R_b =        0.8
+R_b =                      0.9 
 
 ###################################################
 ##          Simulation Paramaters               ##
 ###################################################
-dt		    =  100
+dt		    =      100 
 # time-step increment for saving to file (units seconds/dt)
 dt_save		= round(160000./dt)
-dz		    =  3.0
+dz		    =      3.0 
 # the number of days to run
 days 		= 1000.
 # the depth to run
@@ -78,13 +78,13 @@ ml_min      = 3.
 # max ml
 ml_max      = depth-dz
 # latitude (degrees)
-lat 		= 57.
+lat 		= 60.
 
 maxiter     = days*8.64e4/dt
 nz          = int(depth/dz)+1
 z           = np.arange(0,int(nz))*dz
 # time scale of relaxation
-OR_days             = 0.1*365.
+OR_days             = 0.5*365.
 #OR_days_dw          = 11.5      #this is timescale of deepwater fom louise thesis
 
 #convert the relaxation timescale from years to seconds
