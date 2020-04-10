@@ -56,13 +56,13 @@ def diffusion(temp,salt,oxy,u,v,temp_diff,salt_diff,oxy_diff,vel_diff,nz):
 
 
 
-
-def diffusion_ekman(temp,salt,oxy,u,v,ekman,nz):
+#if adding an ekman vertical velocity solve the advection part of advection-diffusion
+def diffusion_ekman(temp,salt,oxy,u,v,ekman,nz): 
     temp[0:nz-1] = temp[0:nz-1]-ekman*(temp[0:nz-1]-temp[1:])*dt/(dz)
     salt[0:nz-1] = salt[0:nz-1]-ekman*(salt[0:nz-1]-salt[1:])*dt/(dz)
-    oxy[0:nz-1] = oxy[0:nz-1]+ekman*(oxy[0:nz-1]-oxy[1:])*dt/(dz)
-    u[0:nz-1] = u[0:nz-1]+ekman*(u[0:nz-1]-u[1:])*dt/(dz)
-    v[0:nz-1] = v[0:nz-1]+ekman*(v[0:nz-1]-v[1:])*dt/(dz)
+    oxy[0:nz-1] = oxy[0:nz-1]-ekman*(oxy[0:nz-1]-oxy[1:])*dt/(dz)
+    u[0:nz-1] = u[0:nz-1]-ekman*(u[0:nz-1]-u[1:])*dt/(dz)
+    v[0:nz-1] = v[0:nz-1]-ekman*(v[0:nz-1]-v[1:])*dt/(dz)
     return temp,salt,oxy,u,v
 
 #############################
