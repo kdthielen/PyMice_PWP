@@ -8,3 +8,5 @@ on top of a bulk mixed layer model including Krauss turner Paramaterizations and
 
 
 v3 includes petty et al 2014 sea ice physics and a paramaterziation of ekman pumping.
+
+version 5 is the most up to date copy and includes a number of improvements done by Fabien Roquet - University of Gothenburg.
